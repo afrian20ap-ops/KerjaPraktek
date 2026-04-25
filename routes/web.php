@@ -11,12 +11,18 @@ Route::get('/login', function () {
     return view('auth.login');
 })->name('login');
 
-Route::post('/login', function () {
-    // Dummy login action
+Route::post('/login', function (Illuminate\Http\Request $request) {
+    // Dummy login action: set a session so we can simulate login state
+    $request->session()->put('logged_in', true);
+    $request->session()->put('user_role', 'admin');
+    $request->session()->put('user_name', 'Adminstrator');
+    
     return redirect('/admin/dashboard');
 })->name('login.post');
 
-Route::get('/logout', function () {
+Route::post('/logout', function (Illuminate\Http\Request $request) {
+    // Dummy logout action: clear session
+    $request->session()->flush();
     return redirect('/login');
 })->name('logout');
 
