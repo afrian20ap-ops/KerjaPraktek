@@ -154,10 +154,10 @@
                                 </div>
                             </div>
                             <div class="dropdown-content">
-                                <a href="#" class="dropdown-item">
+                                <a href="{{ route('profile') }}" class="dropdown-item">
                                     <i class="fa-regular fa-user"></i> Profil Saya
                                 </a>
-                                <a href="#" class="dropdown-item">
+                                <a href="{{ route('settings') }}" class="dropdown-item">
                                     <i class="fa-solid fa-gear"></i> Pengaturan
                                 </a>
                                 <div class="dropdown-divider"></div>

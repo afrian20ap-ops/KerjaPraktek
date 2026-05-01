@@ -40,68 +40,73 @@
     </div>
     
     <style>
-        .table-absensi { width: 100%; border-collapse: collapse; font-family: 'Outfit', sans-serif; font-size: 0.85rem; }
-        .table-absensi th, .table-absensi td { border: 1px solid var(--border-color); padding: 0.4rem; text-align: center; color: var(--text-primary); white-space: nowrap; }
-        .table-absensi th { background-color: var(--bg-hover); font-weight: 600; color: var(--text-secondary); text-transform: uppercase; font-size: 0.75rem; }
-        .table-absensi tbody tr:hover td { background-color: color-mix(in srgb, var(--bg-hover) 40%, transparent); }
-        .table-absensi td.name-col { text-align: left; font-weight: 500; position: sticky; left: 0; background: var(--bg-card); z-index: 10; }
-        .table-absensi th.name-col { position: sticky; left: 0; z-index: 11; background: var(--bg-hover); }
+        .table-absensi { width: 100%; border-collapse: separate; border-spacing: 0; font-family: 'Outfit', sans-serif; font-size: 0.85rem; }
+        .table-absensi th, .table-absensi td { border: 1px solid var(--border-color); padding: 0.5rem 0.75rem; text-align: center; color: var(--text-primary); white-space: nowrap; }
+        .table-absensi th { background-color: var(--bg-hover); font-weight: 600; color: var(--text-secondary); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; }
+        .table-absensi tbody tr { transition: all 0.2s ease; }
+        .table-absensi tbody tr:hover td { background-color: color-mix(in srgb, var(--primary-50) 40%, transparent); }
+        .table-absensi td.name-col { text-align: left; font-weight: 600; position: sticky; left: 45px; background: var(--bg-card); z-index: 10; box-shadow: 2px 0 5px rgba(0,0,0,0.02); }
+        .table-absensi th.name-col { position: sticky; left: 45px; z-index: 12; background: var(--bg-hover); box-shadow: 2px 0 5px rgba(0,0,0,0.02); }
+        .table-absensi th.no-col { position: sticky; left: 0; z-index: 12; background: var(--bg-hover); width: 45px; }
+        .table-absensi td.no-col { position: sticky; left: 0; background: var(--bg-card); z-index: 10; font-weight: 500; color: var(--text-secondary); }
+        
+        .time-input { width: 100%; min-width: 60px; border: 1px solid transparent; border-radius: var(--border-radius-sm); outline: none; text-align: center; background: transparent; font-family: 'Outfit', monospace; font-size: 0.85rem; font-weight: 500; color: inherit; padding: 0.4rem; transition: all 0.2s ease; }
+        .time-input:hover { background: var(--bg-hover); border-color: var(--border-color); }
+        .time-input:focus { background: var(--surface); border-color: var(--primary-500); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-500) 15%, transparent); }
         
         @media print {
             body * { visibility: hidden; }
             .panel, .panel * { visibility: visible; }
             .panel { position: absolute; left: 0; top: 0; width: 100%; border: none; box-shadow: none; }
             .panel-actions { display: none; }
-            .table-absensi th, .table-absensi td { border: 1px solid #000; color: #000; }
-            .table-absensi td.name-col { position: static; }
+            .table-absensi th, .table-absensi td { border: 1px solid #000; color: #000; padding: 0.25rem; font-size: 10px; }
+            .table-absensi td.name-col, .table-absensi th.name-col, .table-absensi th.no-col, .table-absensi td.no-col { position: static; box-shadow: none; }
+            .time-input { border: none !important; background: transparent !important; }
         }
     </style>
 
-    <div class="table-responsive" style="max-height: 70vh; overflow-y: auto; overflow-x: auto;">
+    <div class="table-responsive" style="border-radius: var(--border-radius); border: 1px solid var(--border-color);">
         <table class="table-absensi">
             <thead>
                 <tr>
-                    <th rowspan="3" style="width: 40px; position: sticky; left: 0; z-index: 11; background: var(--bg-hover);">NO.</th>
-                    <th rowspan="3" class="name-col" style="min-width: 150px;">NAMA PEKERJA</th>
-                    <th colspan="4" style="text-align: left; padding-left: 1rem;">MINGGU KE - 74</th>
-                    <th colspan="6" style="text-align: center;">DARI TANGGAL : 04 April 2026</th>
-                    <th colspan="4" style="text-align: right; padding-right: 1rem;">SAMPAI : 10 April 2026</th>
-                </tr>
-                <tr>
-                    <th colspan="2">SABTU / 04-Apr</th>
-                    <th colspan="2">MINGGU / 05-Apr</th>
-                    <th colspan="2">SENIN / 06-Apr</th>
-                    <th colspan="2">SELASA / 07-Apr</th>
-                    <th colspan="2">RABU / 08-Apr</th>
-                    <th colspan="2">KAMIS / 09-Apr</th>
-                    <th colspan="2">JUM'AT / 10-Apr</th>
-                </tr>
-                <tr>
-                    @for($i = 0; $i < 7; $i++)
-                        <th>MASUK</th>
-                        <th>KELUAR</th>
-                    @endfor
+                    <th>NO.</th>
+                    <th style="text-align:left;">NAMA PEKERJA</th>
+                    <th>TANGGAL</th>
+                    <th>JAM MASUK</th>
+                    <th>JAM KELUAR</th>
+                    <th>STATUS</th>
+                    <th>LEMBUR (JAM)</th>
                 </tr>
             </thead>
             <tbody>
-                @php
-                    $pekerja = [
-                        'Sohib', 'Syarif', 'Syafii Lubis', 'Hafiz', 'Syafii Al islami', 
-                        'Judin', 'Sulistiono', 'Ridho', 'Rudi', 'Aceng', 
-                        'Hannafi', 'Dwi', 'Ade Irwan', 'Nandar', 'Ahmad Sutia', 'Aan', 'Hendra'
-                    ];
-                @endphp
-                
-                @foreach($pekerja as $index => $nama)
+                @forelse($absensis as $index => $abs)
                 <tr>
-                    <td style="position: sticky; left: 0; background: var(--bg-card); z-index: 10;">{{ $index + 1 }}</td>
-                    <td class="name-col">{{ $nama }}</td>
-                    @for($i = 0; $i < 7; $i++)
-                        <td style="padding: 0;"><input type="text" value="09:00" style="width: 100%; min-width: 45px; border: none; outline: none; text-align: center; background: transparent; font-family: inherit; font-size: 0.85rem; color: inherit; padding: 0.4rem;"></td>
-                        <td style="padding: 0;"><input type="text" value="17:00" style="width: 100%; min-width: 45px; border: none; outline: none; text-align: center; background: transparent; font-family: inherit; font-size: 0.85rem; color: inherit; padding: 0.4rem;"></td>
-                    @endfor
+                    <td>{{ $index + 1 }}</td>
+                    <td style="text-align:left; font-weight: 600;">
+                        <div style="display:flex;align-items:center;gap:0.75rem;">
+                            <div class="avatar" style="width:28px;height:28px;font-size:0.7rem;flex-shrink:0;">{{ strtoupper(substr($abs->user->name,0,1)) }}</div>
+                            <span>{{ $abs->user->name }}</span>
+                        </div>
+                    </td>
+                    <td>{{ \Carbon\Carbon::parse($abs->tanggal)->format('d-M-Y') }}</td>
+                    <td>{{ $abs->jam_masuk ? \Carbon\Carbon::parse($abs->jam_masuk)->format('H:i') : '-' }}</td>
+                    <td>{{ $abs->jam_keluar ? \Carbon\Carbon::parse($abs->jam_keluar)->format('H:i') : '-' }}</td>
+                    <td>
+                        @if($abs->status == 'Hadir')
+                            <span class="badge success">{{ $abs->status }}</span>
+                        @elseif($abs->status == 'Alpa')
+                            <span class="badge danger">{{ $abs->status }}</span>
+                        @else
+                            <span class="badge warning">{{ $abs->status }}</span>
+                        @endif
+                    </td>
+                    <td style="font-weight: bold;">{{ $abs->jam_lembur > 0 ? $abs->jam_lembur : '-' }}</td>
                 </tr>
-                @endforeach
+                @empty
+                <tr>
+                    <td colspan="7" style="text-align:center; padding: 2rem;">Belum ada data absensi.</td>
+                </tr>
+                @endforelse
             </tbody>
         </table>
     </div>

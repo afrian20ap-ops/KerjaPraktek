@@ -26,6 +26,14 @@ Route::post('/logout', function (Illuminate\Http\Request $request) {
     return redirect('/login');
 })->name('logout');
 
+// Profile & Settings
+Route::get('/profile', function () {
+    return view('profile.index');
+})->name('profile');
+
+Route::get('/settings', function () {
+    return view('profile.settings');
+})->name('settings');
 
 // ==========================================
 // ROUTES ADMIN
@@ -35,25 +43,24 @@ Route::prefix('admin')->name('admin.')->group(function () {
         return view('admin.dashboard');
     })->name('dashboard');
 
-    Route::get('/karyawan', function () {
-        return view('admin.karyawan.index');
-    })->name('karyawan');
+    Route::get('/karyawan', [App\Http\Controllers\KaryawanController::class, 'index'])->name('karyawan');
+    Route::post('/karyawan', [App\Http\Controllers\KaryawanController::class, 'store'])->name('karyawan.store');
+    Route::put('/karyawan/{id}', [App\Http\Controllers\KaryawanController::class, 'update'])->name('karyawan.update');
+    Route::delete('/karyawan/{id}', [App\Http\Controllers\KaryawanController::class, 'destroy'])->name('karyawan.destroy');
 
-    Route::get('/absensi', function () {
-        return view('admin.absensi.index');
-    })->name('absensi');
+    Route::get('/absensi', [App\Http\Controllers\AbsensiController::class, 'indexAdmin'])->name('absensi');
 
-    Route::get('/gaji/slip', function () {
-        return view('admin.gaji.slip');
-    })->name('gaji.slip');
+    Route::get('/gaji/slip', [App\Http\Controllers\PenggajianController::class, 'slip'])->name('gaji.slip');
+    Route::post('/gaji/slip/{id}', [App\Http\Controllers\PenggajianController::class, 'updateSlip'])->name('gaji.slip.update');
 
-    Route::get('/gaji/rekap', function () {
-        return view('admin.gaji.index');
+    Route::get('/gaji/rekap', function() {
+        return redirect()->route('admin.gaji.slip');
     })->name('gaji.rekap');
+    Route::post('/gaji/generate', [App\Http\Controllers\PenggajianController::class, 'generate'])->name('gaji.generate');
+    Route::post('/gaji/kasbon', [App\Http\Controllers\PenggajianController::class, 'updateKasbon'])->name('gaji.kasbon');
 
-    Route::get('/laporan', function () {
-        return view('admin.laporan.index');
-    })->name('laporan');
+    Route::get('/laporan', [App\Http\Controllers\LaporanController::class, 'indexAdmin'])->name('laporan');
+    Route::post('/laporan/{id}/approve', [App\Http\Controllers\LaporanController::class, 'approveAdmin'])->name('laporan.approve');
 });
 
 
@@ -62,16 +69,20 @@ Route::prefix('admin')->name('admin.')->group(function () {
 // ==========================================
 Route::prefix('supervisi')->name('supervisi.')->group(function () {
     Route::get('/dashboard', function () {
-        return view('supervisi.dashboard');
+        $tim = \App\Models\User::where('role', 'karyawan')->count();
+        $hadirHariIni = \App\Models\Absensi::where('tanggal', \Carbon\Carbon::today()->format('Y-m-d'))
+                            ->where('status', 'Hadir')->count();
+        $laporanTertunda = \App\Models\LaporanLapangan::where('status', 'Terkirim')->count();
+        $laporanTerkini = \App\Models\LaporanLapangan::with('user')->orderBy('created_at', 'desc')->take(5)->get();
+
+        return view('supervisi.dashboard', compact('tim', 'hadirHariIni', 'laporanTertunda', 'laporanTerkini'));
     })->name('dashboard');
 
-    Route::get('/absensi', function () {
-        return view('supervisi.absensi.index');
-    })->name('absensi');
+    Route::get('/absensi', [App\Http\Controllers\AbsensiController::class, 'indexSupervisi'])->name('absensi');
+    Route::post('/absensi', [App\Http\Controllers\AbsensiController::class, 'storeSupervisi'])->name('absensi.store');
 
-    Route::get('/laporan', function () {
-        return view('supervisi.laporan.index');
-    })->name('laporan');
+    Route::get('/laporan', [App\Http\Controllers\LaporanController::class, 'indexSupervisi'])->name('laporan');
+    Route::post('/laporan/{id}/approve', [App\Http\Controllers\LaporanController::class, 'approveSupervisi'])->name('laporan.approve');
 });
 
 
@@ -80,22 +91,26 @@ Route::prefix('supervisi')->name('supervisi.')->group(function () {
 // ==========================================
 Route::prefix('karyawan')->name('karyawan.')->group(function () {
     Route::get('/dashboard', function () {
-        return view('karyawan.dashboard');
+        $userId = 1; // Dummy auth
+        $hadirBulanIni = \App\Models\Absensi::where('user_id', $userId)
+                            ->whereMonth('tanggal', \Carbon\Carbon::now()->month)
+                            ->where('status', 'Hadir')->count();
+        
+        $terlambatBulanIni = \App\Models\Absensi::where('user_id', $userId)
+                            ->whereMonth('tanggal', \Carbon\Carbon::now()->month)
+                            ->where('status', 'Terlambat')->count();
+
+        return view('karyawan.dashboard', compact('hadirBulanIni', 'terlambatBulanIni'));
     })->name('dashboard');
 
-    Route::get('/absensi', function () {
-        return view('karyawan.absensi.index');
-    })->name('absensi');
+    Route::get('/absensi', [App\Http\Controllers\AbsensiController::class, 'indexKaryawan'])->name('absensi');
 
     Route::get('/gaji', function () {
         return view('karyawan.gaji.index');
     })->name('gaji');
 
-    Route::get('/gaji/slip', function () {
-        return view('karyawan.gaji.slip');
-    })->name('gaji.slip');
+    Route::get('/gaji/slip', [App\Http\Controllers\PenggajianController::class, 'slipKaryawan'])->name('gaji.slip');
 
-    Route::get('/laporan', function () {
-        return view('karyawan.laporan.index');
-    })->name('laporan');
+    Route::get('/laporan', [App\Http\Controllers\LaporanController::class, 'indexKaryawan'])->name('laporan');
+    Route::post('/laporan', [App\Http\Controllers\LaporanController::class, 'storeKaryawan'])->name('laporan.store');
 });

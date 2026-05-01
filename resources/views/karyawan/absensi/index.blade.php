@@ -40,34 +40,46 @@
                 </tr>
             </thead>
             <tbody>
+                @forelse($absensis as $abs)
                 <tr>
-                    <td>{{ \Carbon\Carbon::now()->subDays(1)->locale('id')->isoFormat('D MMMM Y') }}</td>
-                    <td>09:00</td>
-                    <td>17:00</td>
-                    <td><span class="badge success">Hadir</span></td>
-                    <td style="color: var(--text-muted); font-size: 0.85rem;"><i class="fa-solid fa-check-circle" style="color: var(--success);"></i> Diverifikasi Supervisi</td>
+                    <td style="font-weight: 500; color: var(--text-primary);">
+                        <i class="fa-regular fa-calendar" style="color: var(--text-muted); margin-right: 0.5rem;"></i> 
+                        {{ \Carbon\Carbon::parse($abs->tanggal)->locale('id')->isoFormat('D MMMM Y') }}
+                    </td>
+                    <td>
+                        @if($abs->jam_masuk)
+                        <div style="background: var(--bg-hover); display: inline-block; padding: 0.25rem 0.5rem; border-radius: 4px; font-family: monospace; font-size: 0.95rem;">{{ \Carbon\Carbon::parse($abs->jam_masuk)->format('H:i') }}</div>
+                        @else
+                        <span style="color: var(--text-muted);">--:--</span>
+                        @endif
+                    </td>
+                    <td>
+                        @if($abs->jam_keluar)
+                        <div style="background: var(--bg-hover); display: inline-block; padding: 0.25rem 0.5rem; border-radius: 4px; font-family: monospace; font-size: 0.95rem;">{{ \Carbon\Carbon::parse($abs->jam_keluar)->format('H:i') }}</div>
+                        @else
+                        <span style="color: var(--text-muted);">--:--</span>
+                        @endif
+                    </td>
+                    <td>
+                        @if($abs->status == 'Hadir')
+                            <span class="badge success"><i class="fa-solid fa-check" style="margin-right: 0.25rem;"></i> {{ $abs->status }}</span>
+                        @elseif($abs->status == 'Alpa')
+                            <span class="badge danger"><i class="fa-solid fa-xmark" style="margin-right: 0.25rem;"></i> {{ $abs->status }}</span>
+                        @else
+                            <span class="badge warning"><i class="fa-solid fa-exclamation" style="margin-right: 0.25rem;"></i> {{ $abs->status }}</span>
+                        @endif
+                    </td>
+                    <td style="color: var(--text-secondary); font-size: 0.85rem;">
+                        <span style="display:inline-flex;align-items:center;gap:0.35rem;background:color-mix(in srgb, var(--success) 10%, transparent);padding:0.25rem 0.5rem;border-radius:4px;color:var(--success);">
+                            <i class="fa-solid fa-shield-check"></i> Diverifikasi Supervisi
+                        </span>
+                    </td>
                 </tr>
+                @empty
                 <tr>
-                    <td>{{ \Carbon\Carbon::now()->subDays(2)->locale('id')->isoFormat('D MMMM Y') }}</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td><span class="badge danger">Alpa</span></td>
-                    <td style="color: var(--text-muted); font-size: 0.85rem;"><i class="fa-solid fa-check-circle" style="color: var(--success);"></i> Diverifikasi Supervisi</td>
+                    <td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-muted);">Belum ada riwayat absensi.</td>
                 </tr>
-                <tr>
-                    <td>{{ \Carbon\Carbon::now()->subDays(3)->locale('id')->isoFormat('D MMMM Y') }}</td>
-                    <td>09:00</td>
-                    <td>17:01</td>
-                    <td><span class="badge success">Hadir</span></td>
-                    <td style="color: var(--text-muted); font-size: 0.85rem;"><i class="fa-solid fa-check-circle" style="color: var(--success);"></i> Diverifikasi Supervisi</td>
-                </tr>
-                <tr>
-                    <td>{{ \Carbon\Carbon::now()->locale('id')->isoFormat('D MMMM Y') }}</td>
-                    <td>-</td>
-                    <td>-</td>
-                    <td><span class="badge warning">Menunggu</span></td>
-                    <td style="color: var(--text-muted); font-size: 0.85rem;"><i class="fa-regular fa-clock" style="color: var(--warning);"></i> Belum Diabsen Supervisi</td>
-                </tr>
+                @endforelse
             </tbody>
         </table>
     </div>

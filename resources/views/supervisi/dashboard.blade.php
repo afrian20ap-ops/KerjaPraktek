@@ -23,7 +23,7 @@
     <div class="stat-card">
         <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
         <div class="stat-info">
-            <div class="stat-value">24</div>
+            <div class="stat-value">{{ $tim }}</div>
             <div class="stat-label">Anggota Tim</div>
         </div>
     </div>
@@ -32,7 +32,7 @@
             <i class="fa-solid fa-user-check"></i>
         </div>
         <div class="stat-info">
-            <div class="stat-value">20</div>
+            <div class="stat-value">{{ $hadirHariIni }}</div>
             <div class="stat-label">Hadir Hari Ini</div>
         </div>
     </div>
@@ -41,7 +41,7 @@
             <i class="fa-solid fa-clipboard-question"></i>
         </div>
         <div class="stat-info">
-            <div class="stat-value">2</div>
+            <div class="stat-value">{{ $laporanTertunda }}</div>
             <div class="stat-label">Laporan Tertunda</div>
         </div>
     </div>
@@ -67,28 +67,37 @@
                 </tr>
             </thead>
             <tbody>
+                @forelse($laporanTerkini as $lp)
                 <tr>
                     <td>
                         <div style="display:flex;align-items:center;gap:0.75rem;">
-                            <div class="avatar" style="width:36px;height:36px;font-size:0.8rem;flex-shrink:0;">A</div>
-                            <span style="font-weight:500;">Andi Wirawan</span>
+                            <div class="avatar" style="width:36px;height:36px;font-size:0.8rem;flex-shrink:0;">
+                                {{ strtoupper(substr($lp->user->name, 0, 1)) }}
+                            </div>
+                            <span style="font-weight:500;">{{ $lp->user->name }}</span>
                         </div>
                     </td>
-                    <td style="color:var(--text-secondary);">Proyek Instalasi Tower</td>
-                    <td>10:30 AM</td>
-                    <td><span class="badge warning">Menunggu Review</span></td>
-                </tr>
-                <tr>
+                    <td style="color:var(--text-secondary);">
+                        {{ \Illuminate\Support\Str::limit($lp->deskripsi_pekerjaan, 40) }}
+                    </td>
+                    <td>{{ \Carbon\Carbon::parse($lp->created_at)->format('H:i') }}</td>
                     <td>
-                        <div style="display:flex;align-items:center;gap:0.75rem;">
-                            <div class="avatar" style="width:36px;height:36px;font-size:0.8rem;flex-shrink:0;">B</div>
-                            <span style="font-weight:500;">Budi Santoso</span>
-                        </div>
+                        @if($lp->status == 'Disetujui')
+                            <span class="badge success">Disetujui</span>
+                        @elseif($lp->status == 'Terkirim')
+                            <span class="badge warning">Menunggu Review</span>
+                        @else
+                            <span class="badge" style="background:var(--bg-hover);color:var(--text-secondary);border:1px solid var(--border-color);">Draft</span>
+                        @endif
                     </td>
-                    <td style="color:var(--text-secondary);">Maintenance Server</td>
-                    <td>09:15 AM</td>
-                    <td><span class="badge success">Disetujui</span></td>
                 </tr>
+                @empty
+                <tr>
+                    <td colspan="4" style="text-align:center;padding:2rem;color:var(--text-muted);">
+                        Belum ada laporan terkini.
+                    </td>
+                </tr>
+                @endforelse
             </tbody>
         </table>
     </div>

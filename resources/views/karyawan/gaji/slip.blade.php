@@ -25,41 +25,52 @@
     
     <div style="padding: 1.5rem;">
         <!-- Header Informasi Karyawan -->
-        <div class="info-karyawan-grid">
-            <div>
-                <div style="display: flex;"><div style="width: 120px;">NAMA</div><div>: <strong>SOHIB</strong></div></div>
-                <div style="display: flex;"><div style="width: 120px;">BASIC</div><div>: 175.000</div></div>
-                <div style="display: flex;"><div style="width: 120px;">UANG LEMBUR</div><div>: 17.500</div></div>
-            </div>
-            <div>
-                <div style="display: flex;"><div style="width: 120px;">UANG MAKAN</div><div>: 20.000</div></div>
-            </div>
-            <div>
-                <div style="display: flex; background: yellow; color: black; padding: 2px 5px; width: max-content; font-weight: 700;">
-                    <div style="width: 100px;">Total GAJI</div><div>: 2.232.500</div>
-                </div>
-                <div style="display: flex;"><div style="width: 100px;">KASBON</div><div>: 0</div></div>
-                <div style="display: flex;"><div style="width: 100px;">PERIODE</div><div>: 28-Mar-26 s/d 10-Apr-26</div></div>
-            </div>
-        </div>
-
-        <!-- Tabel Detail Absensi dan Gaji -->
+        <!-- Header Informasi Karyawan -->
         <style>
-            .table-report { width: 100%; border-collapse: collapse; font-family: monospace; font-size: 0.9rem; }
-            .table-report th, .table-report td { border: 1px solid var(--text-primary); padding: 0.5rem; text-align: center; color: var(--text-primary); }
-            .table-report th { background-color: var(--bg-hover); font-weight: 700; }
-            .table-report tbody tr td { border-bottom: 1px dotted var(--text-primary); }
-            .table-report tfoot th { border: 1px solid var(--text-primary); border-top: 2px solid var(--text-primary); font-weight: 700; text-align: center; padding: 0.75rem; }
+            .info-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--border-radius); padding: 1.5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; margin-bottom: 2rem; box-shadow: var(--shadow-sm); }
+            .info-group { display: flex; flex-direction: column; gap: 0.75rem; }
+            .info-row { display: flex; justify-content: space-between; font-size: 0.9rem; padding-bottom: 0.5rem; border-bottom: 1px dashed var(--border-color); }
+            .info-label { color: var(--text-secondary); font-weight: 500; font-size: 0.85rem; }
+            .info-value { color: var(--text-primary); font-weight: 600; text-align: right; }
+            .info-highlight { background: color-mix(in srgb, var(--success) 10%, transparent); color: var(--success); padding: 0.75rem; border-radius: var(--border-radius-sm); font-size: 1.1rem; font-weight: 800; border: 1px solid color-mix(in srgb, var(--success) 30%, transparent); display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+            
+            .table-report { width: 100%; border-collapse: collapse; font-family: 'Outfit', sans-serif; font-size: 0.85rem; border: 1px solid var(--border-color); border-radius: var(--border-radius); overflow: hidden; }
+            .table-report th, .table-report td { border: 1px solid var(--border-color); padding: 0.65rem 0.4rem; text-align: center; color: var(--text-primary); }
+            .table-report th { background-color: var(--bg-hover); font-weight: 600; color: var(--text-secondary); font-size: 0.75rem; letter-spacing: 0.5px; }
+            .table-report tbody tr:hover td { background-color: color-mix(in srgb, var(--primary-50) 40%, transparent); }
+            .table-report tfoot th { background: color-mix(in srgb, var(--primary-50) 60%, transparent); color: var(--primary-700); font-weight: 700; border-top: 2px solid var(--primary-200); font-size: 0.9rem; }
             
             @media print {
                 body * { visibility: hidden; }
                 .panel, .panel * { visibility: visible; }
                 .panel { position: absolute; left: 0; top: 0; width: 100%; border: none; box-shadow: none; }
-                .panel-actions { display: none; }
+                .panel-actions, .filter-actions { display: none; }
+                .info-card { box-shadow: none; border: 2px solid #000; gap: 1rem; }
+                .info-highlight { background: none; color: #000; border: 2px solid #000; }
+                .table-report th, .table-report td { border: 1px solid #000; color: #000; }
+                .table-report tfoot th { border-top: 2px solid #000; color: #000; }
             }
         </style>
+
+        @if(isset($penggajian) && $penggajian)
+        <div class="info-card">
+            <div class="info-group">
+                <div class="info-row"><span class="info-label">NAMA KARYAWAN</span><span class="info-value" style="text-transform: uppercase;">{{ $penggajian->user->name }}</span></div>
+                <div class="info-row"><span class="info-label">BASIC</span><span class="info-value">{{ number_format($penggajian->user->gaji_pokok_harian, 0, ',', '.') }}</span></div>
+                <div class="info-row"><span class="info-label">UANG LEMBUR / JAM</span><span class="info-value">{{ number_format($penggajian->user->uang_lembur_per_jam, 0, ',', '.') }}</span></div>
+                <div class="info-row"><span class="info-label">UANG MAKAN</span><span class="info-value">{{ number_format($penggajian->user->uang_makan_harian, 0, ',', '.') }}</span></div>
+            </div>
+            <div class="info-group">
+                <div class="info-highlight">
+                    <span style="font-size:0.85rem; font-weight:600; color:var(--text-secondary);">TOTAL GAJI DITERIMA</span>
+                    <span>Rp {{ number_format($penggajian->total_gaji_bersih, 0, ',', '.') }}</span>
+                </div>
+                <div class="info-row"><span class="info-label">KASBON</span><span class="info-value" style="color:var(--danger);">{{ $penggajian->kasbon > 0 ? number_format($penggajian->kasbon, 0, ',', '.') : '0' }}</span></div>
+                <div class="info-row"><span class="info-label">PERIODE</span><span class="info-value">{{ \Carbon\Carbon::parse($penggajian->periode_mulai)->format('d-M-y') }} s/d {{ \Carbon\Carbon::parse($penggajian->periode_akhir)->format('d-M-y') }}</span></div>
+            </div>
+        </div>
         
-        <div class="table-responsive">
+        <div class="table-responsive" style="border-radius: var(--border-radius); border: 1px solid var(--border-color);">
             <table class="table-report">
                 <thead>
                     <tr>
@@ -81,56 +92,50 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @php
-                        $data = [
-                            ['SABTU', '28-Mar-26', '-', '-', '-', '-', '-', '-', '-', '-'],
-                            ['MINGGU', '29-Mar-26', '-', '-', '-', '-', '-', '-', '-', '-'],
-                            ['SENIN', '30-Mar-26', '-', '-', '-', '-', '-', '-', '-', '-'],
-                            ['SELASA', '31-Mar-26', '09:00', '17:00', '1', '175.000', '-', '-', '20.000', '195.000'],
-                            ['RABU', '01-Apr-26', '09:00', '17:00', '1', '175.000', '-', '-', '20.000', '195.000'],
-                            ['KAMIS', '02-Apr-26', '09:00', '17:00', '1', '175.000', '-', '-', '20.000', '195.000'],
-                            ['JUMAT', '03-Apr-26', '09:00', '17:00', '1', '175.000', '-', '-', '20.000', '195.000'],
-                            ['SABTU', '04-Apr-26', '09:00', '17:00', '1', '175.000', '-', '-', '20.000', '195.000'],
-                            ['MINGGU', '05-Apr-26', '09:00', '17:00', '1,5', '262.500', '-', '-', '20.000', '282.500'],
-                            ['SENIN', '06-Apr-26', '09:00', '17:00', '1', '175.000', '-', '-', '20.000', '195.000'],
-                            ['SELASA', '07-Apr-26', '09:00', '17:00', '1', '175.000', '-', '-', '20.000', '195.000'],
-                            ['RABU', '08-Apr-26', '09:00', '17:00', '1', '175.000', '-', '-', '20.000', '195.000'],
-                            ['KAMIS', '09-Apr-26', '09:00', '17:00', '1', '175.000', '-', '-', '20.000', '195.000'],
-                            ['JUMAT', '10-Apr-26', '09:00', '17:00', '1', '175.000', '-', '-', '20.000', '195.000'],
-                        ];
-                    @endphp
-                    
-                    @foreach($data as $index => $row)
+                    @forelse($absensis as $index => $abs)
                     <tr>
-                        <td>{{ $index + 1 }}</td>
-                        <td>{{ $row[0] }}</td>
-                        <td>{{ $row[1] }}</td>
-                        <td>{{ $row[2] }}</td>
-                        <td>{{ $row[3] }}</td>
-                        <td style="font-weight: bold;">{{ $row[4] }}</td>
-                        <td>{{ $row[5] }}</td>
-                        <td style="font-weight: bold;">{{ $row[6] }}</td>
-                        <td>{{ $row[7] }}</td>
-                        <td>{{ $row[8] }}</td>
-                        <td>{{ $row[9] === '195.000' || $row[9] === '282.500' ? '0' : '-' }}</td>
-                        <td style="font-weight: bold;">{{ $row[9] }}</td>
+                        <td style="color:var(--text-secondary);">{{ $index + 1 }}</td>
+                        <td style="font-weight:500; text-transform: uppercase;">{{ \Carbon\Carbon::parse($abs->tanggal)->locale('id')->isoFormat('dddd') }}</td>
+                        <td style="color:var(--text-secondary);">{{ \Carbon\Carbon::parse($abs->tanggal)->format('d-M-y') }}</td>
+                        <td>{{ $abs->jam_masuk ? \Carbon\Carbon::parse($abs->jam_masuk)->format('H:i') : '-' }}</td>
+                        <td>{{ $abs->jam_keluar ? \Carbon\Carbon::parse($abs->jam_keluar)->format('H:i') : '-' }}</td>
+                        <td style="font-weight: 700; color:var(--primary-600);">{{ $abs->total_hari }}</td>
+                        <td>{{ number_format($abs->total_hari * $penggajian->user->gaji_pokok_harian, 0, ',', '.') }}</td>
+                        <td style="font-weight: 700;">{{ $abs->jam_lembur ?: '-' }}</td>
+                        <td>{{ $abs->jam_lembur ? number_format($abs->jam_lembur * $penggajian->user->uang_lembur_per_jam, 0, ',', '.') : '-' }}</td>
+                        <td>{{ $abs->dapat_uang_makan ? number_format($penggajian->user->uang_makan_harian, 0, ',', '.') : '-' }}</td>
+                        <td style="color:var(--danger);">-</td>
+                        <td style="font-weight: 800; color:var(--text-primary);">
+                            {{ number_format(($abs->total_hari * $penggajian->user->gaji_pokok_harian) + ($abs->jam_lembur * $penggajian->user->uang_lembur_per_jam) + ($abs->dapat_uang_makan ? $penggajian->user->uang_makan_harian : 0), 0, ',', '.') }}
+                        </td>
                     </tr>
-                    @endforeach
+                    @empty
+                    <tr>
+                        <td colspan="12" style="text-align:center; padding:2rem;">Tidak ada data absensi untuk periode ini.</td>
+                    </tr>
+                    @endforelse
                 </tbody>
                 <tfoot>
                     <tr>
-                        <th colspan="5" style="text-align: center;">TOTAL</th>
-                        <th>11,5</th>
-                        <th>2.012.500</th>
-                        <th>0</th>
-                        <th>-</th>
-                        <th>220.000</th>
-                        <th>-</th>
-                        <th>2.232.500</th>
+                        <th colspan="5" style="text-align: right; padding-right: 1rem;">GRAND TOTAL</th>
+                        <th>{{ number_format($penggajian->total_kehadiran_hari, 1, ',', '.') }}</th>
+                        <th>{{ number_format($penggajian->total_gaji_pokok, 0, ',', '.') }}</th>
+                        <th>{{ $penggajian->total_jam_lembur }}</th>
+                        <th>{{ number_format($penggajian->total_uang_lembur, 0, ',', '.') }}</th>
+                        <th>{{ number_format($penggajian->total_uang_makan, 0, ',', '.') }}</th>
+                        <th style="color:var(--danger);">{{ $penggajian->kasbon > 0 ? number_format($penggajian->kasbon, 0, ',', '.') : '-' }}</th>
+                        <th style="font-size:1.1rem;">{{ number_format($penggajian->total_gaji_bersih, 0, ',', '.') }}</th>
                     </tr>
                 </tfoot>
             </table>
         </div>
+        @else
+        <div style="text-align:center; padding:4rem 2rem; background:var(--bg-card); border-radius:var(--border-radius); border:1px solid var(--border-color);">
+            <i class="fa-solid fa-file-invoice-dollar" style="font-size:3rem; color:var(--text-muted); margin-bottom:1rem;"></i>
+            <h3 style="color:var(--text-primary); margin-bottom:0.5rem;">Slip Gaji Belum Tersedia</h3>
+            <p style="color:var(--text-secondary);">Gaji Anda untuk periode ini belum di-generate oleh admin. Silakan cek kembali nanti.</p>
+        </div>
+        @endif
     </div>
 </div>
 @endsection

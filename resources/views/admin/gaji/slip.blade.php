@@ -1,6 +1,6 @@
 @extends('layouts.app')
-@section('title', 'Summary Report Penggajian')
-@section('page-title', 'Summary Report Penggajian')
+@section('title', 'Slip Gaji')
+@section('page-title', 'Slip Gaji')
 
 @section('sidebar-nav')
 <span class="nav-label">Menu Utama</span>
@@ -16,135 +16,315 @@
 @endsection
 
 @section('content')
+
+<style>
+    .info-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--border-radius);
+        padding: 1.5rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 2rem;
+        margin-bottom: 1.5rem;
+    }
+    .info-group { display: flex; flex-direction: column; gap: 0.6rem; }
+    .info-row { display: flex; justify-content: space-between; font-size: 0.88rem; padding-bottom: 0.45rem; border-bottom: 1px dashed var(--border-color); }
+    .info-label { color: var(--text-secondary); font-weight: 500; font-size: 0.82rem; }
+    .info-value { color: var(--text-primary); font-weight: 700; text-align: right; }
+    .info-highlight {
+        background: color-mix(in srgb, var(--success) 10%, transparent);
+        color: var(--success);
+        padding: 0.85rem 1rem;
+        border-radius: var(--border-radius-sm);
+        font-size: 1.05rem;
+        font-weight: 800;
+        border: 1px solid color-mix(in srgb, var(--success) 30%, transparent);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+    .table-report { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    .table-report th, .table-report td { border: 1px solid var(--border-color); padding: 0.6rem 0.4rem; text-align: center; color: var(--text-primary); white-space: nowrap; }
+    .table-report th { background: var(--bg-hover); font-weight: 600; color: var(--text-secondary); font-size: 0.72rem; letter-spacing: 0.4px; text-transform: uppercase; }
+    .table-report tbody tr:hover td { background: color-mix(in srgb, var(--primary-50) 35%, transparent); }
+    .table-report tfoot th { background: color-mix(in srgb, var(--primary-100) 50%, transparent); color: var(--primary-700); font-weight: 700; border-top: 2px solid var(--primary-300); font-size: 0.85rem; }
+    .input-rupiah {
+        width: 90px;
+        text-align: right;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        padding: 0.3rem 0.5rem;
+        background: var(--bg-card);
+        color: var(--text-primary);
+        font-family: monospace;
+        font-size: 0.82rem;
+        transition: border 0.15s;
+    }
+    .input-rupiah:focus { border-color: var(--primary-500); outline: none; box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-500) 20%, transparent); }
+    .alert-success { padding: 0.85rem 1rem; background: var(--success); color: white; border-radius: var(--border-radius); margin-bottom: 1rem; font-weight: 500; }
+
+    @media print {
+        .no-print, .panel-header form, .panel-actions { display: none !important; }
+        body * { visibility: hidden; }
+        .panel, .panel * { visibility: visible; }
+        .panel { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none; border: none; }
+        .table-report th, .table-report td { border: 1px solid #000 !important; color: #000 !important; }
+        .table-report tfoot th { border-top: 2px solid #000 !important; }
+        .input-rupiah { border: none !important; background: transparent !important; font-weight: 700; }
+        .info-card { border: 1px solid #000 !important; }
+        .info-highlight { background: none !important; color: #000 !important; border: 1px solid #000 !important; }
+    }
+</style>
+
 <div class="panel">
-    <div class="panel-header">
+    {{-- ===== HEADER: Filter + Generate ===== --}}
+    <div class="panel-header" style="flex-wrap: wrap; gap: 0.75rem;">
         <div class="header-left">
-            <span class="panel-title" style="font-weight: 700; font-size: 1.25rem;">SUMMARY REPORT</span>
-            <div class="filter-actions">
-                <label style="font-size: 0.85rem; font-weight: 500; color: var(--text-secondary);">Karyawan:</label>
-                <select class="form-control" style="padding:0.35rem 0.75rem;font-size:0.85rem; width:200px;">
-                    <option value="Sohib">Sohib (EMP-001)</option>
-                    <option value="Syarif">Syarif (EMP-002)</option>
-                    <option value="Syafii">Syafii Lubis (EMP-003)</option>
-                    <option value="Hafiz">Hafiz (EMP-004)</option>
-                </select>
-                <button class="btn btn-primary" style="padding: 0.35rem 0.75rem;"><i class="fa-solid fa-search"></i> Tampilkan</button>
-            </div>
+            <span class="panel-title" style="font-weight: 700; font-size: 1.2rem;">SUMMARY REPORT</span>
         </div>
-        <div class="panel-actions">
-            <button class="btn btn-outline" style="border-color: var(--primary-500); color: var(--primary-500);" onclick="window.print()"><i class="fa-solid fa-print"></i> Cetak / Export PDF</button>
-            <button class="btn btn-primary" onclick="showToast('Data slip berhasil disimpan!')"><i class="fa-solid fa-save"></i> Simpan</button>
+
+        <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+            {{-- Pilih Karyawan --}}
+            @if(isset($penggajian))
+            <form class="filter-actions" action="{{ route('admin.gaji.slip') }}" method="GET" style="display:flex;gap:0.5rem;align-items:center;">
+                <label style="font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); white-space:nowrap;">Karyawan:</label>
+                <input type="text" id="searchInput" list="karyawanList" class="form-control" placeholder="Ketik nama atau NIK..." style="padding:0.35rem 0.75rem;font-size:0.85rem; min-width:250px;" value="{{ $penggajian ? strtoupper($penggajian->user->name) . ' (' . ($penggajian->user->nik ?? '-') . ')' : '' }}">
+                <datalist id="karyawanList">
+                    @foreach($semuaKaryawan as $karyawan)
+                        <option data-id="{{ $karyawan->id }}" value="{{ strtoupper($karyawan->name) }} ({{ $karyawan->nik ?? '-' }})"></option>
+                    @endforeach
+                </datalist>
+                <input type="hidden" name="user_id" id="hiddenUserId" value="{{ $penggajian->user_id ?? '' }}">
+                <button type="submit" class="btn btn-primary" style="padding:0.35rem 0.75rem;"><i class="fa-solid fa-search"></i> Tampilkan</button>
+            </form>
+            @endif
+
+            {{-- Cetak --}}
+            <button onclick="window.print()" class="btn btn-outline no-print" style="border-color:var(--primary-500);color:var(--primary-500);padding:0.35rem 0.85rem;">
+                <i class="fa-solid fa-print"></i> Cetak / Export PDF
+            </button>
         </div>
     </div>
-    
-    <div style="padding: 1.5rem;">
-        <!-- Header Informasi Karyawan -->
-        <div class="info-karyawan-grid">
-            <div>
-                <div style="display: flex;"><div style="width: 120px;">NAMA</div><div>: <strong>SOHIB</strong></div></div>
-                <div style="display: flex;"><div style="width: 120px;">BASIC</div><div>: 175.000</div></div>
-                <div style="display: flex;"><div style="width: 120px;">UANG LEMBUR</div><div>: 17.500</div></div>
+
+    <div style="padding: 0 1.5rem 1.5rem;">
+        @if(session('success'))
+            <div class="alert-success"><i class="fa-solid fa-check-circle"></i> {{ session('success') }}</div>
+        @endif
+
+        @if(isset($penggajian))
+        {{-- ===== INFO CARD ===== --}}
+        <div class="info-card">
+            <div class="info-group">
+                <div class="info-row"><span class="info-label">NAMA KARYAWAN</span><span class="info-value" style="text-transform:uppercase;">{{ $penggajian->user->name }}</span></div>
+                <div class="info-row"><span class="info-label">BASIC / HARI</span><span class="info-value">Rp {{ number_format($penggajian->user->gaji_pokok_harian, 0, ',', '.') }}</span></div>
+                <div class="info-row"><span class="info-label">UANG LEMBUR / JAM</span><span class="info-value">Rp {{ number_format($penggajian->user->uang_lembur_per_jam, 0, ',', '.') }}</span></div>
+                <div class="info-row"><span class="info-label">UANG MAKAN / HARI</span><span class="info-value">Rp {{ number_format($penggajian->user->uang_makan_harian, 0, ',', '.') }}</span></div>
             </div>
-            <div>
-                <div style="display: flex;"><div style="width: 120px;">UANG MAKAN</div><div>: 20.000</div></div>
-            </div>
-            <div>
-                <div style="display: flex; background: yellow; color: black; padding: 2px 5px; width: max-content; font-weight: 700;">
-                    <div style="width: 100px;">Total GAJI</div><div>: 2.232.500</div>
+            <div class="info-group">
+                <div class="info-highlight">
+                    <span style="font-size:0.82rem;font-weight:600;color:var(--text-secondary);">TOTAL GAJI DITERIMA</span>
+                    <span id="header-total-gaji">Rp {{ number_format($penggajian->total_gaji_bersih, 0, ',', '.') }}</span>
                 </div>
-                <div style="display: flex;"><div style="width: 100px;">KASBON</div><div>: 0</div></div>
-                <div style="display: flex;"><div style="width: 100px;">PERIODE</div><div>: 28-Mar-26 s/d 10-Apr-26</div></div>
+                <div class="info-row"><span class="info-label">TOTAL KASBON</span><span class="info-value" style="color:var(--danger);" id="header-total-kasbon">{{ $penggajian->kasbon > 0 ? 'Rp '.number_format($penggajian->kasbon, 0, ',', '.') : '-' }}</span></div>
+                <div class="info-row"><span class="info-label">PERIODE</span><span class="info-value">{{ \Carbon\Carbon::parse($penggajian->periode_mulai)->format('d-M-y') }} s/d {{ \Carbon\Carbon::parse($penggajian->periode_akhir)->format('d-M-y') }}</span></div>
             </div>
         </div>
 
-        <!-- Tabel Detail Absensi dan Gaji -->
-        <style>
-            .table-report { width: 100%; border-collapse: collapse; font-family: monospace; font-size: 0.9rem; }
-            .table-report th, .table-report td { border: 1px solid var(--text-primary); padding: 0.5rem; text-align: center; color: var(--text-primary); }
-            .table-report th { background-color: var(--bg-hover); font-weight: 700; }
-            .table-report tbody tr td { border-bottom: 1px dotted var(--text-primary); }
-            .table-report tfoot th { border: 1px solid var(--text-primary); border-top: 2px solid var(--text-primary); font-weight: 700; text-align: center; padding: 0.75rem; }
-            
-            @media print {
-                body * { visibility: hidden; }
-                .panel, .panel * { visibility: visible; }
-                .panel { position: absolute; left: 0; top: 0; width: 100%; border: none; box-shadow: none; }
-                .panel-actions { display: none; }
-            }
-        </style>
-        
-        <div class="table-responsive">
-            <table class="table-report">
-                <thead>
-                    <tr>
-                        <th rowspan="2">NO</th>
-                        <th rowspan="2">HARI KERJA</th>
-                        <th rowspan="2">TANGGAL</th>
-                        <th colspan="2">JAM DATANG &<br>PULANG</th>
-                        <th rowspan="2">TOTAL<br>HARI</th>
-                        <th rowspan="2">TOTAL<br>GAJI</th>
-                        <th rowspan="2">JAM<br>LEMBUR</th>
-                        <th rowspan="2">TOTAL<br>LEMBUR</th>
-                        <th rowspan="2">UANG<br>MAKAN</th>
-                        <th rowspan="2">KASBON</th>
-                        <th rowspan="2">JUMLAH</th>
-                    </tr>
-                    <tr>
-                        <th>IN</th>
-                        <th>OUT</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @php
-                        $data = [
-                            ['SABTU', '28-Mar-26', '-', '-', '-', '-', '-', '-', '-', '-'],
-                            ['MINGGU', '29-Mar-26', '-', '-', '-', '-', '-', '-', '-', '-'],
-                            ['SENIN', '30-Mar-26', '-', '-', '-', '-', '-', '-', '-', '-'],
-                            ['SELASA', '31-Mar-26', '09:00', '17:00', '1', '175.000', '-', '-', '20.000', '195.000'],
-                            ['RABU', '01-Apr-26', '09:00', '17:00', '1', '175.000', '-', '-', '20.000', '195.000'],
-                            ['KAMIS', '02-Apr-26', '09:00', '17:00', '1', '175.000', '-', '-', '20.000', '195.000'],
-                            ['JUMAT', '03-Apr-26', '09:00', '17:00', '1', '175.000', '-', '-', '20.000', '195.000'],
-                            ['SABTU', '04-Apr-26', '09:00', '17:00', '1', '175.000', '-', '-', '20.000', '195.000'],
-                            ['MINGGU', '05-Apr-26', '09:00', '17:00', '1,5', '262.500', '-', '-', '20.000', '282.500'],
-                            ['SENIN', '06-Apr-26', '09:00', '17:00', '1', '175.000', '-', '-', '20.000', '195.000'],
-                            ['SELASA', '07-Apr-26', '09:00', '17:00', '1', '175.000', '-', '-', '20.000', '195.000'],
-                            ['RABU', '08-Apr-26', '09:00', '17:00', '1', '175.000', '-', '-', '20.000', '195.000'],
-                            ['KAMIS', '09-Apr-26', '09:00', '17:00', '1', '175.000', '-', '-', '20.000', '195.000'],
-                            ['JUMAT', '10-Apr-26', '09:00', '17:00', '1', '175.000', '-', '-', '20.000', '195.000'],
-                        ];
-                    @endphp
-                    
-                    @foreach($data as $index => $row)
-                    <tr>
-                        <td>{{ $index + 1 }}</td>
-                        <td>{{ $row[0] }}</td>
-                        <td>{{ $row[1] }}</td>
-                        <td>{{ $row[2] }}</td>
-                        <td>{{ $row[3] }}</td>
-                        <td style="font-weight: bold;">{{ $row[4] }}</td>
-                        <td>{{ $row[5] }}</td>
-                        <td style="font-weight: bold;">{{ $row[6] }}</td>
-                        <td>{{ $row[7] }}</td>
-                        <td>{{ $row[8] }}</td>
-                        <td>{{ $row[9] === '195.000' || $row[9] === '282.500' ? '0' : '-' }}</td>
-                        <td style="font-weight: bold;">{{ $row[9] }}</td>
-                    </tr>
-                    @endforeach
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <th colspan="5" style="text-align: center;">TOTAL</th>
-                        <th>11,5</th>
-                        <th>2.012.500</th>
-                        <th>0</th>
-                        <th>-</th>
-                        <th>220.000</th>
-                        <th>-</th>
-                        <th>2.232.500</th>
-                    </tr>
-                </tfoot>
-            </table>
+        {{-- ===== FORM EDIT RINCIAN PER HARI ===== --}}
+        <form action="{{ route('admin.gaji.slip.update', $penggajian->id) }}" method="POST">
+            @csrf
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;" class="no-print">
+                <span style="font-size:0.85rem;color:var(--text-secondary);">
+                    <i class="fa-solid fa-circle-info" style="color:var(--primary-500);"></i>
+                    Klik kolom angka untuk mengedit nilai <strong>Basic, Lembur, Makan, dan Kasbon</strong> per hari.
+                </span>
+                <button type="submit" class="btn btn-primary" style="padding:0.4rem 1rem;">
+                    <i class="fa-solid fa-save"></i> Simpan Perubahan
+                </button>
+            </div>
+
+            <div class="table-responsive" style="border-radius:var(--border-radius);border:1px solid var(--border-color);overflow:auto;">
+                <table class="table-report">
+                    <thead>
+                        <tr>
+                            <th rowspan="2">NO</th>
+                            <th rowspan="2">HARI KERJA</th>
+                            <th rowspan="2">TANGGAL</th>
+                            <th colspan="2">JAM DATANG & PULANG</th>
+                            <th rowspan="2">TOTAL<br>HARI</th>
+                            <th rowspan="2">TOTAL GAJI<br>(Rp)</th>
+                            <th rowspan="2">JAM<br>LEMBUR</th>
+                            <th rowspan="2">TOTAL LEMBUR<br>(Rp)</th>
+                            <th rowspan="2">UANG MAKAN<br>(Rp)</th>
+                            <th rowspan="2">KASBON<br>(Rp)</th>
+                            <th rowspan="2">JUMLAH</th>
+                        </tr>
+                        <tr>
+                            <th>IN</th>
+                            <th>OUT</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @php
+                            $grandGaji = 0; $grandLembur = 0; $grandMakan = 0;
+                            $grandKasbon = 0; $grandJumlah = 0;
+                        @endphp
+
+                        @forelse($absensis as $index => $abs)
+                        @php
+                            $basicDefault  = $abs->total_hari * $penggajian->user->gaji_pokok_harian;
+                            $lemburDefault = $abs->jam_lembur * $penggajian->user->uang_lembur_per_jam;
+                            $makanDefault  = $abs->dapat_uang_makan ? $penggajian->user->uang_makan_harian : 0;
+
+                            $valBasic  = $abs->nominal_basic  !== null ? $abs->nominal_basic  : $basicDefault;
+                            $valLembur = $abs->nominal_lembur !== null ? $abs->nominal_lembur : $lemburDefault;
+                            $valMakan  = $abs->nominal_makan  !== null ? $abs->nominal_makan  : $makanDefault;
+                            $valKasbon = $abs->nominal_kasbon !== null ? $abs->nominal_kasbon : 0;
+                            $jumlah    = ($valBasic + $valLembur + $valMakan) - $valKasbon;
+
+                            $grandGaji   += $valBasic;
+                            $grandLembur += $valLembur;
+                            $grandMakan  += $valMakan;
+                            $grandKasbon += $valKasbon;
+                            $grandJumlah += $jumlah;
+                        @endphp
+                        <tr>
+                            <td style="color:var(--text-muted);">{{ $index + 1 }}</td>
+                            <td style="font-weight:600;text-transform:uppercase;color:var(--primary-600);">{{ \Carbon\Carbon::parse($abs->tanggal)->locale('id')->isoFormat('dddd') }}</td>
+                            <td style="color:var(--text-secondary);">{{ \Carbon\Carbon::parse($abs->tanggal)->format('d-M-y') }}</td>
+                            <td>{{ $abs->jam_masuk  ? substr($abs->jam_masuk, 0, 5)  : '-' }}</td>
+                            <td>{{ $abs->jam_keluar ? substr($abs->jam_keluar, 0, 5) : '-' }}</td>
+                            <td style="font-weight:700;color:var(--primary-600);">{{ $abs->total_hari }}</td>
+                            <td><input type="number" name="absensi[{{ $abs->id }}][basic]"  value="{{ (int)$valBasic }}"  class="input-rupiah"></td>
+                            <td style="font-weight:700;">{{ $abs->jam_lembur ?: '-' }}</td>
+                            <td><input type="number" name="absensi[{{ $abs->id }}][lembur]" value="{{ (int)$valLembur }}" class="input-rupiah"></td>
+                            <td><input type="number" name="absensi[{{ $abs->id }}][makan]"  value="{{ (int)$valMakan }}"  class="input-rupiah"></td>
+                            <td><input type="number" name="absensi[{{ $abs->id }}][kasbon]" value="{{ (int)$valKasbon }}" class="input-rupiah" style="color:var(--danger);"></td>
+                            <td style="font-weight:800;" class="jumlah-col">{{ number_format($jumlah, 0, ',', '.') }}</td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="12" style="text-align:center;padding:2rem;color:var(--text-muted);">
+                                Tidak ada data absensi untuk periode ini.
+                            </td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th colspan="5" style="text-align:right;padding-right:1rem;">GRAND TOTAL</th>
+                            <th>{{ number_format($penggajian->total_kehadiran_hari, 1, ',', '.') }}</th>
+                            <th id="footer-grand-gaji">{{ number_format($grandGaji, 0, ',', '.') }}</th>
+                            <th>{{ $penggajian->total_jam_lembur }}</th>
+                            <th id="footer-grand-lembur">{{ number_format($grandLembur, 0, ',', '.') }}</th>
+                            <th id="footer-grand-makan">{{ number_format($grandMakan, 0, ',', '.') }}</th>
+                            <th style="color:var(--danger);" id="footer-grand-kasbon">{{ $grandKasbon > 0 ? number_format($grandKasbon, 0, ',', '.') : '-' }}</th>
+                            <th style="font-size:0.95rem;color:var(--success);" id="footer-grand-jumlah">{{ number_format($grandJumlah, 0, ',', '.') }}</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </form>
+
+        @else
+        {{-- ===== STATE KOSONG: Belum ada data ===== --}}
+        <div style="text-align:center;padding:4rem 2rem;color:var(--text-muted);">
+            <i class="fa-solid fa-file-circle-question" style="font-size:3rem;margin-bottom:1rem;display:block;color:var(--border-color);"></i>
+            <p style="font-size:1rem;margin-bottom:0.5rem;">Belum ada slip gaji yang digenerate.</p>
+            <p style="font-size:0.85rem;">Klik tombol <strong>Generate Gaji</strong> di atas untuk membuat rekap gaji bulan ini.</p>
         </div>
+        @endif
     </div>
 </div>
 @endsection
+
+
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const inputs = document.querySelectorAll('.input-rupiah');
+
+    function calculateGrandTotals() {
+        let totalGaji = 0;
+        let totalLembur = 0;
+        let totalMakan = 0;
+        let totalKasbon = 0;
+        let totalJumlah = 0;
+
+        document.querySelectorAll('tbody tr').forEach(function(row) {
+            const cols = row.querySelectorAll('.input-rupiah');
+            if(cols.length === 4) {
+                const basic  = parseFloat(cols[0].value) || 0;
+                const lembur = parseFloat(cols[1].value) || 0;
+                const makan  = parseFloat(cols[2].value) || 0;
+                const kasbon = parseFloat(cols[3].value) || 0;
+                
+                totalGaji += basic;
+                totalLembur += lembur;
+                totalMakan += makan;
+                totalKasbon += kasbon;
+                totalJumlah += (basic + lembur + makan - kasbon);
+            }
+        });
+
+        // Update footer
+        if(document.getElementById('footer-grand-gaji')) document.getElementById('footer-grand-gaji').textContent = totalGaji.toLocaleString('id-ID');
+        if(document.getElementById('footer-grand-lembur')) document.getElementById('footer-grand-lembur').textContent = totalLembur.toLocaleString('id-ID');
+        if(document.getElementById('footer-grand-makan')) document.getElementById('footer-grand-makan').textContent = totalMakan.toLocaleString('id-ID');
+        if(document.getElementById('footer-grand-kasbon')) document.getElementById('footer-grand-kasbon').textContent = totalKasbon > 0 ? totalKasbon.toLocaleString('id-ID') : '-';
+        if(document.getElementById('footer-grand-jumlah')) document.getElementById('footer-grand-jumlah').textContent = totalJumlah.toLocaleString('id-ID');
+
+        // Update header
+        if(document.getElementById('header-total-gaji')) document.getElementById('header-total-gaji').textContent = 'Rp ' + totalJumlah.toLocaleString('id-ID');
+        if(document.getElementById('header-total-kasbon')) document.getElementById('header-total-kasbon').textContent = totalKasbon > 0 ? 'Rp ' + totalKasbon.toLocaleString('id-ID') : '-';
+    }
+
+    inputs.forEach(function (input) {
+        input.addEventListener('input', function () {
+            const row = this.closest('tr');
+            const cols = row.querySelectorAll('.input-rupiah');
+            const basic  = parseFloat(cols[0]?.value) || 0;
+            const lembur = parseFloat(cols[1]?.value) || 0;
+            const makan  = parseFloat(cols[2]?.value) || 0;
+            const kasbon = parseFloat(cols[3]?.value) || 0;
+            const jumlah = basic + lembur + makan - kasbon;
+
+            const jumlahCol = row.querySelector('.jumlah-col');
+            if (jumlahCol) {
+                jumlahCol.textContent = jumlah.toLocaleString('id-ID');
+            }
+
+            calculateGrandTotals();
+        });
+    });
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const hiddenUserId = document.getElementById('hiddenUserId');
+    const form = searchInput.closest('form');
+
+    searchInput.addEventListener('change', function() {
+        const selectedOption = document.querySelector(`#karyawanList option[value="${this.value}"]`);
+        if (selectedOption) {
+            hiddenUserId.value = selectedOption.getAttribute('data-id');
+            form.submit();
+        }
+    });
+
+    form.addEventListener('submit', function(e) {
+        const selectedOption = document.querySelector(`#karyawanList option[value="${searchInput.value}"]`);
+        if (selectedOption) {
+            hiddenUserId.value = selectedOption.getAttribute('data-id');
+        } else {
+            e.preventDefault();
+            alert("Karyawan tidak ditemukan. Silakan pilih dari daftar.");
+        }
+    });
+});
+</script>
+@endpush

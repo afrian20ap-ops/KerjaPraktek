@@ -51,6 +51,6 @@ class DatabaseSeeder extends Seeder
         }
 
         $controller = new PenggajianController();
-        $controller->hitungGaji($sohib->id, '2026-03-28', '2026-04-10', 0);
+        $controller->hitungGaji($sohib->id, '2026-03-28', '2026-04-10', 50000);
     }
 }

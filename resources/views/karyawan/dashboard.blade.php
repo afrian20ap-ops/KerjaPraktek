@@ -35,7 +35,7 @@
             <i class="fa-solid fa-calendar-check"></i>
         </div>
         <div class="stat-info">
-            <div class="stat-value">18</div>
+            <div class="stat-value">{{ $hadirBulanIni }}</div>
             <div class="stat-label">Hadir Bulan Ini</div>
         </div>
     </div>
@@ -44,7 +44,7 @@
             <i class="fa-solid fa-clock"></i>
         </div>
         <div class="stat-info">
-            <div class="stat-value">1</div>
+            <div class="stat-value">{{ $terlambatBulanIni }}</div>
             <div class="stat-label">Terlambat</div>
         </div>
     </div>
