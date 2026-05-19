@@ -106,17 +106,18 @@ class PenggajianController extends Controller
     public function slip(Request $request)
     {
         $userId = $request->query('user_id');
+        $bulanTahun = $request->query('bulan_tahun', Carbon::now()->format('Y-m'));
 
-        $periodeMulai = Carbon::now()->startOfMonth()->format('Y-m-d');
-        $periodeAkhir = Carbon::now()->endOfMonth()->format('Y-m-d');
+        $tanggalObj = Carbon::createFromFormat('Y-m', $bulanTahun);
+        $periodeMulai = $tanggalObj->copy()->startOfMonth()->format('Y-m-d');
+        $periodeAkhir = $tanggalObj->copy()->endOfMonth()->format('Y-m-d');
 
-        // Jika tidak ada user_id, pilih karyawan pertama
+        // Ambil semua karyawan untuk dropdown pencarian
+        $semuaKaryawan = User::where('role', 'karyawan')->orderBy('name', 'asc')->get();
+
+        // Jika tidak ada user_id, tampilkan state kosong
         if (!$userId) {
-            $firstUser = User::where('role', '!=', 'admin')->orderBy('name', 'asc')->first();
-            if (!$firstUser) {
-                return view('admin.gaji.slip');
-            }
-            $userId = $firstUser->id;
+            return view('admin.gaji.slip', compact('semuaKaryawan'))->with('belumPilih', true);
         }
 
         $user = User::findOrFail($userId);
@@ -137,10 +138,7 @@ class PenggajianController extends Controller
             ->orderBy('tanggal', 'asc')
             ->get();
 
-        // Ambil semua karyawan untuk dropdown pencarian
-        $semuaKaryawan = User::where('role', '!=', 'admin')->orderBy('name', 'asc')->get();
-
-        return view('admin.gaji.slip', compact('penggajian', 'absensis', 'semuaKaryawan'));
+        return view('admin.gaji.slip', compact('penggajian', 'absensis', 'semuaKaryawan', 'userId', 'bulanTahun'));
     }
 
     public function updateSlip(Request $request, $id)
@@ -151,6 +149,7 @@ class PenggajianController extends Controller
         $grandUangLembur = 0;
         $grandUangMakan = 0;
         $grandKasbon = 0;
+        $grandJamLembur = 0;
 
         if ($request->has('absensi')) {
             foreach ($request->absensi as $absId => $data) {
@@ -160,16 +159,26 @@ class PenggajianController extends Controller
                     $abs->nominal_lembur = $data['lembur'];
                     $abs->nominal_makan = $data['makan'];
                     $abs->nominal_kasbon = $data['kasbon'];
+                    
+                    if (isset($data['jam_lembur'])) {
+                        $abs->jam_lembur = $data['jam_lembur'];
+                    }
+                    
                     $abs->save();
 
                     $grandGajiPokok += $data['basic'];
                     $grandUangLembur += $data['lembur'];
                     $grandUangMakan += $data['makan'];
                     $grandKasbon += $data['kasbon'];
+                    if (isset($data['jam_lembur'])) {
+                        $grandJamLembur += $data['jam_lembur'];
+                    }
                 }
             }
         }
 
+        $penggajian->total_kehadiran_hari = $penggajian->total_kehadiran_hari; // Tetap
+        $penggajian->total_jam_lembur   = $grandJamLembur;
         $penggajian->total_gaji_pokok   = $grandGajiPokok;
         $penggajian->total_uang_lembur  = $grandUangLembur;
         $penggajian->total_uang_makan   = $grandUangMakan;
@@ -183,9 +192,15 @@ class PenggajianController extends Controller
 
     public function slipKaryawan(Request $request)
     {
-        // Karena tidak ada sistem auth yang fix, kita asumsikan karyawan melihat slip terakhirnya
-        // Idealnya: $userId = auth()->id();
-        $userId = 1; // dummy user id untuk testing
+        // Gunakan user_id dari session (sesuai login system manual)
+        $userId = session('user_id');
+        
+        // Jika user tidak terautentikasi, redirect ke login
+        if (!$userId) {
+            return redirect()->route('login');
+        }
+        
+        // Ambil penggajian terakhir dengan relasi user yang ter-load
         $penggajian = Penggajian::with('user')->where('user_id', $userId)->latest()->first();
         
         if (!$penggajian) {
@@ -193,6 +208,7 @@ class PenggajianController extends Controller
             return view('karyawan.gaji.slip');
         }
 
+        // Ambil detail absensi untuk periode penggajian tersebut
         $absensis = Absensi::where('user_id', $userId)
             ->whereBetween('tanggal', [$penggajian->periode_mulai, $penggajian->periode_akhir])
             ->orderBy('tanggal', 'asc')

@@ -10,7 +10,6 @@ class KaryawanController extends Controller
 {
     public function index()
     {
-        // Tampilkan semua user kecuali admin
         $karyawan = User::where('role', '!=', 'admin')->orderBy('name', 'asc')->get();
         return view('admin.karyawan.index', compact('karyawan'));
     }
@@ -19,7 +18,7 @@ class KaryawanController extends Controller
     {
         $request->validate([
             'name'                => 'required|string|max:255',
-            'email'               => 'required|email|unique:users,email',
+            'username'            => 'required|string|max:50|unique:users,username|alpha_dash',
             'nik'                 => 'required|string|unique:users,nik',
             'role'                => 'required|in:karyawan,supervisi',
             'divisi'              => 'nullable|string',
@@ -32,7 +31,7 @@ class KaryawanController extends Controller
 
         User::create([
             'name'                => $request->name,
-            'email'               => $request->email,
+            'username'            => $request->username,
             'nik'                 => $request->nik,
             'role'                => $request->role,
             'divisi'              => $request->divisi,
@@ -52,8 +51,8 @@ class KaryawanController extends Controller
 
         $request->validate([
             'name'                => 'required|string|max:255',
-            'email'               => 'required|email|unique:users,email,'.$id,
-            'nik'                 => 'required|string|unique:users,nik,'.$id,
+            'username'            => 'required|string|max:50|unique:users,username,' . $id . '|alpha_dash',
+            'nik'                 => 'required|string|unique:users,nik,' . $id,
             'role'                => 'required|in:karyawan,supervisi',
             'divisi'              => 'nullable|string',
             'jabatan'             => 'nullable|string',
@@ -63,7 +62,7 @@ class KaryawanController extends Controller
         ]);
 
         $user->name                = $request->name;
-        $user->email               = $request->email;
+        $user->username            = $request->username;
         $user->nik                 = $request->nik;
         $user->role                = $request->role;
         $user->divisi              = $request->divisi;

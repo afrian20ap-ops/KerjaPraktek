@@ -6,26 +6,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const themeIcon = document.getElementById('themeIcon');
     
     if (themeToggle && themeIcon) {
-        // Check for saved theme preference or use system preference
-        const savedTheme = localStorage.getItem('theme') || 
-            (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-            
-        document.documentElement.setAttribute('data-theme', savedTheme);
-        if (savedTheme === 'dark') {
-            themeIcon.classList.replace('fa-moon', 'fa-sun');
+        const sidebarLogo = document.getElementById('sidebar-logo');
+
+        function applyTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+            if (theme === 'dark') {
+                themeIcon.classList.replace('fa-moon', 'fa-sun');
+                if (sidebarLogo) sidebarLogo.src = '/images/garuda1.png';
+            } else {
+                themeIcon.classList.replace('fa-sun', 'fa-moon');
+                if (sidebarLogo) sidebarLogo.src = '/images/garuda.png';
+            }
         }
 
+        // Apply saved or system theme on load
+        const savedTheme = localStorage.getItem('theme') ||
+            (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        applyTheme(savedTheme);
+
         themeToggle.addEventListener('click', () => {
-            const html = document.documentElement;
-            if(html.getAttribute('data-theme') === 'dark') {
-                html.setAttribute('data-theme', 'light');
-                themeIcon.classList.replace('fa-sun', 'fa-moon');
-                localStorage.setItem('theme', 'light');
-            } else {
-                html.setAttribute('data-theme', 'dark');
-                themeIcon.classList.replace('fa-moon', 'fa-sun');
-                localStorage.setItem('theme', 'dark');
-            }
+            const current = document.documentElement.getAttribute('data-theme');
+            applyTheme(current === 'dark' ? 'light' : 'dark');
         });
     }
 

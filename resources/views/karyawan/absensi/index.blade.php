@@ -36,11 +36,21 @@
                     <th>Jam Masuk</th>
                     <th>Jam Keluar</th>
                     <th>Status</th>
-                    <th>Keterangan</th>
+                    <th>Lembur(jam)</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse($absensis as $abs)
+                @php
+                    $lembur = 0;
+                    if ($abs->jam_masuk && $abs->jam_keluar && $abs->status === 'Hadir') {
+                        $keluarC = \Carbon\Carbon::parse($abs->jam_keluar);
+                        $batas   = \Carbon\Carbon::parse($abs->jam_masuk)->setTime(17, 0, 0);
+                        if ($keluarC->gt($batas)) {
+                            $lembur = (int) floor(abs($keluarC->diffInMinutes($batas)) / 60);
+                        }
+                    }
+                @endphp
                 <tr>
                     <td style="font-weight: 500; color: var(--text-primary);">
                         <i class="fa-regular fa-calendar" style="color: var(--text-muted); margin-right: 0.5rem;"></i> 
@@ -69,10 +79,8 @@
                             <span class="badge warning"><i class="fa-solid fa-exclamation" style="margin-right: 0.25rem;"></i> {{ $abs->status }}</span>
                         @endif
                     </td>
-                    <td style="color: var(--text-secondary); font-size: 0.85rem;">
-                        <span style="display:inline-flex;align-items:center;gap:0.35rem;background:color-mix(in srgb, var(--success) 10%, transparent);padding:0.25rem 0.5rem;border-radius:4px;color:var(--success);">
-                            <i class="fa-solid fa-shield-check"></i> Diverifikasi Supervisi
-                        </span>
+                    <td style="color: var(--text-secondary); font-size: 0.95rem; font-weight: 700;">
+                        {{ $lembur > 0 ? $lembur : '-' }}
                     </td>
                 </tr>
                 @empty

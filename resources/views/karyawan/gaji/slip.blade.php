@@ -55,17 +55,17 @@
         @if(isset($penggajian) && $penggajian)
         <div class="info-card">
             <div class="info-group">
-                <div class="info-row"><span class="info-label">NAMA KARYAWAN</span><span class="info-value" style="text-transform: uppercase;">{{ $penggajian->user->name }}</span></div>
-                <div class="info-row"><span class="info-label">BASIC</span><span class="info-value">{{ number_format($penggajian->user->gaji_pokok_harian, 0, ',', '.') }}</span></div>
-                <div class="info-row"><span class="info-label">UANG LEMBUR / JAM</span><span class="info-value">{{ number_format($penggajian->user->uang_lembur_per_jam, 0, ',', '.') }}</span></div>
-                <div class="info-row"><span class="info-label">UANG MAKAN</span><span class="info-value">{{ number_format($penggajian->user->uang_makan_harian, 0, ',', '.') }}</span></div>
+                <div class="info-row"><span class="info-label">NAMA KARYAWAN</span><span class="info-value" style="text-transform: uppercase;">{{ $penggajian->user->name ?? '-' }}</span></div>
+                <div class="info-row"><span class="info-label">BASIC / HARI</span><span class="info-value">Rp {{ number_format($penggajian->user->gaji_pokok_harian, 0, ',', '.') }}</span></div>
+                <div class="info-row"><span class="info-label">UANG LEMBUR / JAM</span><span class="info-value">Rp {{ number_format($penggajian->user->uang_lembur_per_jam, 0, ',', '.') }}</span></div>
+                <div class="info-row"><span class="info-label">UANG MAKAN / HARI</span><span class="info-value">Rp {{ number_format($penggajian->user->uang_makan_harian, 0, ',', '.') }}</span></div>
             </div>
             <div class="info-group">
                 <div class="info-highlight">
                     <span style="font-size:0.85rem; font-weight:600; color:var(--text-secondary);">TOTAL GAJI DITERIMA</span>
                     <span>Rp {{ number_format($penggajian->total_gaji_bersih, 0, ',', '.') }}</span>
                 </div>
-                <div class="info-row"><span class="info-label">KASBON</span><span class="info-value" style="color:var(--danger);">{{ $penggajian->kasbon > 0 ? number_format($penggajian->kasbon, 0, ',', '.') : '0' }}</span></div>
+                <div class="info-row"><span class="info-label">TOTAL KASBON</span><span class="info-value" style="color:var(--danger);">{{ $penggajian->kasbon > 0 ? 'Rp '.number_format($penggajian->kasbon, 0, ',', '.') : '-' }}</span></div>
                 <div class="info-row"><span class="info-label">PERIODE</span><span class="info-value">{{ \Carbon\Carbon::parse($penggajian->periode_mulai)->format('d-M-y') }} s/d {{ \Carbon\Carbon::parse($penggajian->periode_akhir)->format('d-M-y') }}</span></div>
             </div>
         </div>
@@ -92,22 +92,68 @@
                     </tr>
                 </thead>
                 <tbody>
+                    @php
+                        $grandHari = 0;
+                        $grandJamLembur = 0;
+                        $grandGaji = 0;
+                        $grandLembur = 0;
+                        $grandMakan = 0;
+                        $grandKasbon = 0;
+                        $grandJumlah = 0;
+                    @endphp
                     @forelse($absensis as $index => $abs)
+                    @php
+                        $realJamLembur = 0;
+                        if ($abs->jam_masuk && $abs->jam_keluar) {
+                            $masukC  = \Carbon\Carbon::parse($abs->jam_masuk);
+                            $keluarC = \Carbon\Carbon::parse($abs->jam_keluar);
+                            $batas   = \Carbon\Carbon::parse($abs->jam_masuk)->setTime(17, 0, 0);
+
+                            if ($keluarC->gt($batas)) {
+                                $realJamLembur = (int) floor(abs($keluarC->diffInMinutes($batas)) / 60);
+                            }
+                        }
+
+                        $realTotalHari = $abs->total_hari;
+                        if (\Carbon\Carbon::parse($abs->tanggal)->isSunday() && $abs->status === 'Hadir') {
+                            $realTotalHari = 1.5;
+                        }
+
+                        $basicDefault  = $realTotalHari * $penggajian->user->gaji_pokok_harian;
+                        $lemburDefault = $realJamLembur * $penggajian->user->uang_lembur_per_jam;
+                        $makanDefault  = $abs->dapat_uang_makan ? $penggajian->user->uang_makan_harian : 0;
+
+                        $valBasic  = $abs->nominal_basic  !== null ? $abs->nominal_basic  : $basicDefault;
+                        if (\Carbon\Carbon::parse($abs->tanggal)->isSunday() && $valBasic == $penggajian->user->gaji_pokok_harian) {
+                            $valBasic = $basicDefault;
+                        }
+
+                        $valLembur = $abs->nominal_lembur !== null ? $abs->nominal_lembur : $lemburDefault;
+                        $valMakan  = $abs->nominal_makan  !== null ? $abs->nominal_makan  : $makanDefault;
+                        $valKasbon = $abs->nominal_kasbon !== null ? $abs->nominal_kasbon : 0;
+                        $jumlah    = ($valBasic + $valLembur + $valMakan) - $valKasbon;
+
+                        $grandHari += $realTotalHari;
+                        $grandJamLembur += $realJamLembur;
+                        $grandGaji += $valBasic;
+                        $grandLembur += $valLembur;
+                        $grandMakan += $valMakan;
+                        $grandKasbon += $valKasbon;
+                        $grandJumlah += $jumlah;
+                    @endphp
                     <tr>
                         <td style="color:var(--text-secondary);">{{ $index + 1 }}</td>
                         <td style="font-weight:500; text-transform: uppercase;">{{ \Carbon\Carbon::parse($abs->tanggal)->locale('id')->isoFormat('dddd') }}</td>
                         <td style="color:var(--text-secondary);">{{ \Carbon\Carbon::parse($abs->tanggal)->format('d-M-y') }}</td>
                         <td>{{ $abs->jam_masuk ? \Carbon\Carbon::parse($abs->jam_masuk)->format('H:i') : '-' }}</td>
                         <td>{{ $abs->jam_keluar ? \Carbon\Carbon::parse($abs->jam_keluar)->format('H:i') : '-' }}</td>
-                        <td style="font-weight: 700; color:var(--primary-600);">{{ $abs->total_hari }}</td>
-                        <td>{{ number_format($abs->total_hari * $penggajian->user->gaji_pokok_harian, 0, ',', '.') }}</td>
-                        <td style="font-weight: 700;">{{ $abs->jam_lembur ?: '-' }}</td>
-                        <td>{{ $abs->jam_lembur ? number_format($abs->jam_lembur * $penggajian->user->uang_lembur_per_jam, 0, ',', '.') : '-' }}</td>
-                        <td>{{ $abs->dapat_uang_makan ? number_format($penggajian->user->uang_makan_harian, 0, ',', '.') : '-' }}</td>
-                        <td style="color:var(--danger);">-</td>
-                        <td style="font-weight: 800; color:var(--text-primary);">
-                            {{ number_format(($abs->total_hari * $penggajian->user->gaji_pokok_harian) + ($abs->jam_lembur * $penggajian->user->uang_lembur_per_jam) + ($abs->dapat_uang_makan ? $penggajian->user->uang_makan_harian : 0), 0, ',', '.') }}
-                        </td>
+                        <td style="font-weight: 700; color:var(--primary-600);">{{ $realTotalHari }}</td>
+                        <td>{{ number_format($valBasic, 0, ',', '.') }}</td>
+                        <td style="font-weight: 700;">{{ $realJamLembur ?: '-' }}</td>
+                        <td>{{ $valLembur > 0 ? number_format($valLembur, 0, ',', '.') : '-' }}</td>
+                        <td>{{ $valMakan > 0 ? number_format($valMakan, 0, ',', '.') : '-' }}</td>
+                        <td style="color:var(--danger);">{{ $valKasbon > 0 ? number_format($valKasbon, 0, ',', '.') : '-' }}</td>
+                        <td style="font-weight: 800; color:var(--text-primary);">{{ number_format($jumlah, 0, ',', '.') }}</td>
                     </tr>
                     @empty
                     <tr>
@@ -118,13 +164,13 @@
                 <tfoot>
                     <tr>
                         <th colspan="5" style="text-align: right; padding-right: 1rem;">GRAND TOTAL</th>
-                        <th>{{ number_format($penggajian->total_kehadiran_hari, 1, ',', '.') }}</th>
-                        <th>{{ number_format($penggajian->total_gaji_pokok, 0, ',', '.') }}</th>
-                        <th>{{ $penggajian->total_jam_lembur }}</th>
-                        <th>{{ number_format($penggajian->total_uang_lembur, 0, ',', '.') }}</th>
-                        <th>{{ number_format($penggajian->total_uang_makan, 0, ',', '.') }}</th>
-                        <th style="color:var(--danger);">{{ $penggajian->kasbon > 0 ? number_format($penggajian->kasbon, 0, ',', '.') : '-' }}</th>
-                        <th style="font-size:1.1rem;">{{ number_format($penggajian->total_gaji_bersih, 0, ',', '.') }}</th>
+                        <th>{{ number_format($grandHari, 1, ',', '.') }}</th>
+                        <th>{{ number_format($grandGaji, 0, ',', '.') }}</th>
+                        <th>{{ $grandJamLembur }}</th>
+                        <th>{{ number_format($grandLembur, 0, ',', '.') }}</th>
+                        <th>{{ number_format($grandMakan, 0, ',', '.') }}</th>
+                        <th style="color:var(--danger);">{{ $grandKasbon > 0 ? number_format($grandKasbon, 0, ',', '.') : '-' }}</th>
+                        <th style="font-size:1.1rem;">{{ number_format($grandJumlah, 0, ',', '.') }}</th>
                     </tr>
                 </tfoot>
             </table>

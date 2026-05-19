@@ -6,12 +6,9 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::create('absensis', function (Blueprint $table) {
+        Schema::create('absensi', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->date('tanggal');
@@ -21,15 +18,19 @@ return new class extends Migration
             $table->decimal('total_hari', 3, 1)->default(1.0); // 1.0 = normal, 1.5 = sunday/holiday
             $table->integer('jam_lembur')->default(0); // dalam jam
             $table->boolean('dapat_uang_makan')->default(true); // false jika hanya setengah hari dll
+            
+            // Kolom nominal langsung disertakan
+            $table->decimal('nominal_basic', 15, 2)->nullable();
+            $table->decimal('nominal_lembur', 15, 2)->nullable();
+            $table->decimal('nominal_makan', 15, 2)->nullable();
+            $table->decimal('nominal_kasbon', 15, 2)->default(0);
+            
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('absensis');
+        Schema::dropIfExists('absensi');
     }
 };

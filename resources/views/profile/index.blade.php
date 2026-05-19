@@ -59,19 +59,19 @@
             </div>
 
             <div style="padding-bottom: 0.5rem; z-index: 1;">
-                <a href="{{ route('settings') }}" class="btn btn-outline"><i class="fa-solid fa-pen" style="margin-right: 0.5rem;"></i> Edit Profil</a>
+                <!-- Edit Profil moved to bottom section -->
             </div>
         </div>
     </div>
 </div>
 
-<div class="grid-2">
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 1.5rem; align-items: start;">
     <!-- Informasi Personal -->
     <div class="panel">
         <div class="panel-header">
             <span class="panel-title"><i class="fa-regular fa-address-card" style="color: var(--primary-500); margin-right: 0.5rem;"></i> Informasi Personal</span>
         </div>
-        <div class="panel-body">
+        <div class="panel-body" style="padding: 0 1.5rem 1.5rem 1.5rem;">
             <ul style="list-style: none; padding: 0; margin: 0;">
                 <li style="display: flex; justify-content: space-between; padding: 1rem 0; border-bottom: 1px solid var(--border-color);">
                     <span style="color: var(--text-secondary);">Nomor Induk Karyawan</span>
@@ -102,7 +102,7 @@
         <div class="panel-header">
             <span class="panel-title"><i class="fa-solid fa-briefcase" style="color: var(--primary-500); margin-right: 0.5rem;"></i> Informasi Pekerjaan</span>
         </div>
-        <div class="panel-body">
+        <div class="panel-body" style="padding: 0 1.5rem 1.5rem 1.5rem;">
             <ul style="list-style: none; padding: 0; margin: 0;">
                 <li style="display: flex; justify-content: space-between; padding: 1rem 0; border-bottom: 1px solid var(--border-color);">
                     <span style="color: var(--text-secondary);">Role Sistem</span>
@@ -126,6 +126,43 @@
                 </li>
             </ul>
         </div>
+    </div>
+</div>
+
+<!-- Form Edit Profil -->
+<div class="panel" style="margin-top: 2rem;">
+    <div class="panel-header">
+        <span class="panel-title"><i class="fa-solid fa-pen" style="color: var(--primary-500); margin-right: 0.5rem;"></i> Edit Profil</span>
+    </div>
+    <div class="panel-body" style="padding: 1.5rem;">
+        <form action="{{ route('profile.update') }}" method="POST">
+            @csrf
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+                <div class="form-group">
+                    <label class="form-label">Nama Lengkap</label>
+                    <input type="text" class="form-control" name="name" value="{{ session('user_name', 'Pengguna') }}" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email Akses</label>
+                    <input type="email" class="form-control" name="email" value="user@garudajaya.com" required>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+                <div class="form-group">
+                    <label class="form-label">Nomor Telepon</label>
+                    <input type="text" class="form-control" name="phone" value="+62 812-3456-7890">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Alamat Domisili</label>
+                    <input type="text" class="form-control" name="address" value="Jakarta, Indonesia">
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem;">
+                <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+            </div>
+        </form>
     </div>
 </div>
 @endsection

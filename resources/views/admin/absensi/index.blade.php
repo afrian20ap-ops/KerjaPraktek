@@ -21,21 +21,24 @@
     <div class="panel-header" style="flex-wrap: wrap; gap: 1rem;">
         <span class="panel-title">Rekapitulasi Absensi</span>
         <div class="panel-actions" style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                <label style="font-size: 0.85rem; font-weight: 500; color: var(--text-secondary);">Minggu Ke-</label>
-                <input type="number" class="form-control" style="padding:0.35rem 0.75rem;font-size:0.85rem; width:70px; text-align:center;" value="74">
-            </div>
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                <label style="font-size: 0.85rem; font-weight: 500; color: var(--text-secondary);">Dari:</label>
-                <input type="date" class="form-control" style="padding:0.35rem 0.75rem;font-size:0.85rem; width:130px;" value="2026-04-04">
-            </div>
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                <label style="font-size: 0.85rem; font-weight: 500; color: var(--text-secondary);">Sampai:</label>
-                <input type="date" class="form-control" style="padding:0.35rem 0.75rem;font-size:0.85rem; width:130px;" value="2026-04-10">
-            </div>
-            <button class="btn btn-primary"><i class="fa-solid fa-filter"></i> Tampilkan</button>
-            <button class="btn btn-outline" style="border-color: var(--primary-500); color: var(--primary-500);" onclick="window.print()"><i class="fa-solid fa-print"></i> Cetak PDF</button>
-            <button class="btn btn-primary" onclick="showToast('Data berhasil disimpan!')"><i class="fa-solid fa-save"></i> Simpan</button>
+            <form method="GET" action="{{ route('admin.absensi') }}" id="filterForm" style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <label style="font-size: 0.85rem; font-weight: 500; color: var(--text-secondary); white-space:nowrap;">Karyawan:</label>
+                    <input type="text" id="searchInput" list="karyawanList" class="form-control" placeholder="Ketik nama atau NIK..." style="padding:0.35rem 0.75rem;font-size:0.85rem; width:220px;" value="{{ isset($karyawanTerpilih) ? strtoupper($karyawanTerpilih->name) . ' (' . ($karyawanTerpilih->nik ?? '-') . ')' : '' }}">
+                    <datalist id="karyawanList">
+                        @foreach($semuaKaryawan as $karyawan)
+                            <option data-id="{{ $karyawan->id }}" value="{{ strtoupper($karyawan->name) }} ({{ $karyawan->nik ?? '-' }})"></option>
+                        @endforeach
+                    </datalist>
+                    <input type="hidden" name="user_id" id="hiddenUserId" value="{{ isset($karyawanTerpilih) ? $karyawanTerpilih->id : '' }}">
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <label style="font-size: 0.85rem; font-weight: 500; color: var(--text-secondary); white-space:nowrap;">Bulan & Tahun:</label>
+                    <input type="month" id="bulan_tahun" name="bulan_tahun" class="form-control" style="padding:0.35rem 0.75rem;font-size:0.85rem; width:160px;" value="{{ request('bulan_tahun', date('Y-m')) }}" onchange="this.form.submit()">
+                </div>
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-filter"></i> Tampilkan</button>
+                <button type="button" class="btn btn-outline" style="border-color: var(--primary-500); color: var(--primary-500);" onclick="window.print()"><i class="fa-solid fa-print"></i> Cetak PDF</button>
+            </form>
         </div>
     </div>
     
@@ -70,7 +73,6 @@
             <thead>
                 <tr>
                     <th>NO.</th>
-                    <th style="text-align:left;">NAMA PEKERJA</th>
                     <th>TANGGAL</th>
                     <th>JAM MASUK</th>
                     <th>JAM KELUAR</th>
@@ -82,12 +84,6 @@
                 @forelse($absensis as $index => $abs)
                 <tr>
                     <td>{{ $index + 1 }}</td>
-                    <td style="text-align:left; font-weight: 600;">
-                        <div style="display:flex;align-items:center;gap:0.75rem;">
-                            <div class="avatar" style="width:28px;height:28px;font-size:0.7rem;flex-shrink:0;">{{ strtoupper(substr($abs->user->name,0,1)) }}</div>
-                            <span>{{ $abs->user->name }}</span>
-                        </div>
-                    </td>
                     <td>{{ \Carbon\Carbon::parse($abs->tanggal)->format('d-M-Y') }}</td>
                     <td>{{ $abs->jam_masuk ? \Carbon\Carbon::parse($abs->jam_masuk)->format('H:i') : '-' }}</td>
                     <td>{{ $abs->jam_keluar ? \Carbon\Carbon::parse($abs->jam_keluar)->format('H:i') : '-' }}</td>
@@ -100,11 +96,30 @@
                             <span class="badge warning">{{ $abs->status }}</span>
                         @endif
                     </td>
-                    <td style="font-weight: bold;">{{ $abs->jam_lembur > 0 ? $abs->jam_lembur : '-' }}</td>
+                    @php
+                        $realLembur = $abs->jam_lembur;
+                        if ($abs->jam_keluar) {
+                            $keluarC = \Carbon\Carbon::parse($abs->jam_keluar);
+                            $batas   = \Carbon\Carbon::parse('17:00:00');
+                            if ($keluarC->hour < 9) {
+                                $keluarC->addDay();
+                            }
+                            if ($keluarC->gt($batas)) {
+                                $realLembur = (int) round($keluarC->diffInMinutes($batas) / 60);
+                            } else {
+                                $realLembur = 0;
+                            }
+                        }
+                    @endphp
+                    <td style="font-weight: bold;">{{ $realLembur > 0 ? '+' . $realLembur . ' jam' : '-' }}</td>
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="7" style="text-align:center; padding: 2rem;">Belum ada data absensi.</td>
+                    @if(isset($karyawanTerpilih))
+                        <td colspan="6" style="text-align:center; padding: 2rem; color:var(--text-muted);">Tidak ada data absensi untuk <strong>{{ $karyawanTerpilih->name }}</strong> pada periode yang dipilih.</td>
+                    @else
+                        <td colspan="6" style="text-align:center; padding: 2rem; color:var(--text-muted);">Silakan pilih karyawan terlebih dahulu untuk melihat rekapitulasi absensi.</td>
+                    @endif
                 </tr>
                 @endforelse
             </tbody>
@@ -112,3 +127,94 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Search handler for employee datalist
+    const searchInput = document.getElementById('searchInput');
+    const hiddenUserId = document.getElementById('hiddenUserId');
+    const form = document.getElementById('filterForm');
+
+    function hitungLembur(userId) {
+        const keluar   = document.getElementById('keluar-' + userId)?.value;
+        const lemburEl = document.getElementById('lembur-' + userId);
+        if (!keluar || !lemburEl) return;
+
+        const [h, m]   = keluar.split(':').map(Number);
+        let totalMnt = h * 60 + m;
+        const batasMnt = 17 * 60;
+
+        if (h < 9) {
+            totalMnt += 24 * 60;
+        }
+
+        if (totalMnt > batasMnt) {
+            const jam = Math.round((totalMnt - batasMnt) / 60);
+            lemburEl.textContent = jam > 0 ? '+' + jam + ' jam' : '-';
+            lemburEl.style.color = 'var(--warning)';
+        } else {
+            lemburEl.textContent = '-';
+            lemburEl.style.color = 'var(--text-muted)';
+        }
+    }
+
+    function findMatch() {
+        if (!searchInput.value) return null;
+        const val = searchInput.value.toLowerCase();
+        let foundId = null;
+        let exactMatch = false;
+
+        const options = document.querySelectorAll('#karyawanList option');
+        for (let i = 0; i < options.length; i++) {
+            if (options[i].value.toLowerCase() === val) {
+                foundId = options[i].getAttribute('data-id');
+                exactMatch = true;
+                break;
+            }
+        }
+        
+        if (!exactMatch && val.length > 0) {
+            for (let i = 0; i < options.length; i++) {
+                if (options[i].value.toLowerCase().includes(val)) {
+                    foundId = options[i].getAttribute('data-id');
+                    searchInput.value = options[i].value; // auto-complete
+                    break;
+                }
+            }
+        }
+        return foundId;
+    }
+
+    if (searchInput) {
+        searchInput.addEventListener('change', function() {
+            if (!this.value) {
+                hiddenUserId.value = '';
+                return;
+            }
+            const foundId = findMatch();
+            if (foundId) {
+                hiddenUserId.value = foundId;
+                form.submit();
+            }
+        });
+
+        form.addEventListener('submit', function(e) {
+            if (searchInput.value) {
+                const foundId = findMatch();
+                if (foundId) {
+                    hiddenUserId.value = foundId;
+                } else {
+                    e.preventDefault();
+                    alert("Karyawan tidak ditemukan. Silakan ketik nama atau NIK dengan benar.");
+                }
+            } else {
+                e.preventDefault();
+                alert("Silakan pilih karyawan terlebih dahulu.");
+            }
+        });
+    }
+
+});
+</script>
+@endpush
