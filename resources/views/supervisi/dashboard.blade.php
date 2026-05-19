@@ -32,8 +32,8 @@
             <i class="fa-solid fa-user-check"></i>
         </div>
         <div class="stat-info">
-            <div class="stat-value">{{ $hadirHariIni }}</div>
-            <div class="stat-label">Hadir Hari Ini</div>
+            <div class="stat-value">{{ $hadirKemarin }}</div>
+            <div class="stat-label">Hadir Kemarin</div>
         </div>
     </div>
     <div class="stat-card">
@@ -44,6 +44,101 @@
             <div class="stat-value">{{ $laporanTertunda }}</div>
             <div class="stat-label">Laporan Tertunda</div>
         </div>
+    </div>
+</div>
+
+<div class="grid-2" style="margin-top: 2rem;">
+    <!-- Chart Kehadiran Bulanan -->
+    <div class="panel">
+        <div class="panel-header">
+            <span class="panel-title"><i class="fa-solid fa-chart-line" style="color:var(--primary-500);margin-right:0.5rem;"></i>Grafik Kehadiran Bulanan</span>
+            <div class="panel-actions">
+                <select class="form-control" style="padding:0.25rem 0.5rem;font-size:0.8rem;border-radius:4px;border:1px solid var(--border-color);background:var(--bg-card);color:var(--text-primary);">
+                    <option>{{ now()->year }}</option>
+                    <option>{{ now()->year - 1 }}</option>
+                </select>
+            </div>
+        </div>
+        <div style="padding:1.5rem;">
+            <canvas id="attendanceChart" height="220"></canvas>
+        </div>
+    </div>
+
+    <!-- Chart Status Absensi -->
+    <div class="panel">
+        <div class="panel-header">
+            <span class="panel-title"><i class="fa-solid fa-chart-pie" style="color:var(--primary-500);margin-right:0.5rem;"></i>Status Kehadiran Kemarin</span>
+        </div>
+        <div style="padding:1.5rem;display:flex;align-items:center;gap:2rem;flex-wrap:wrap;justify-content:center;">
+            <div style="position:relative;width:100%;max-width:180px;aspect-ratio:1/1;flex-shrink:0;">
+                <canvas id="statusChart"></canvas>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:0.75rem;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="display:flex;align-items:center;gap:0.5rem;font-size:0.875rem;"><span style="width:12px;height:12px;border-radius:3px;background:var(--success);display:inline-block;"></span>Hadir</span>
+                    <strong>{{ $hadirKemarin ?? 0 }}</strong>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="display:flex;align-items:center;gap:0.5rem;font-size:0.875rem;"><span style="width:12px;height:12px;border-radius:3px;background:var(--danger);display:inline-block;"></span>Tidak Hadir</span>
+                    <strong>{{ $tidakHadirKemarin ?? 0 }}</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Absensi Terkini -->
+<div class="panel" style="margin-top: 2rem;">
+    <div class="panel-header">
+        <span class="panel-title"><i class="fa-solid fa-clock-rotate-left" style="color:var(--primary-500);margin-right:0.5rem;"></i> Absensi Kemarin</span>
+        <div class="panel-actions">
+            <a href="{{ route('supervisi.absensi') }}" class="btn btn-outline" style="font-size:0.82rem;">Lihat Semua</a>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Karyawan</th>
+                    <th>Jam Masuk</th>
+                    <th>Jam Keluar</th>
+                    <th>Jam Lembur</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($absensiTerkini ?? [] as $abs)
+                <tr>
+                    <td>
+                        <div style="display:flex;align-items:center;gap:0.75rem;">
+                            <div class="avatar" style="width:36px;height:36px;font-size:0.8rem;flex-shrink:0;">
+                                {{ strtoupper(substr($abs->user->name ?? 'U', 0, 1)) }}
+                            </div>
+                            <span style="font-weight:500;">{{ $abs->user->name ?? 'Unknown' }}</span>
+                        </div>
+                    </td>
+                    <td>{{ $abs->jam_masuk ? \Carbon\Carbon::parse($abs->jam_masuk)->format('H:i') : '-' }}</td>
+                    <td>{{ $abs->jam_keluar ? \Carbon\Carbon::parse($abs->jam_keluar)->format('H:i') : '-' }}</td>
+                    <td style="font-weight:600; color:{{ $abs->jam_lembur > 0 ? 'var(--warning)' : 'var(--text-muted)' }};">
+                        {{ $abs->jam_lembur > 0 ? '+' . $abs->jam_lembur . ' jam' : '-' }}
+                    </td>
+                    <td>
+                        @if($abs->status == 'Hadir')
+                            <span class="badge success">Hadir</span>
+                        @else
+                            <span class="badge danger">Tidak Hadir</span>
+                        @endif
+                    </td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="5" style="text-align:center;padding:2rem;color:var(--text-muted);">
+                        Belum ada data absensi kemarin.
+                    </td>
+                </tr>
+                @endforelse
+            </tbody>
+        </table>
     </div>
 </div>
 
@@ -61,7 +156,7 @@
             <thead>
                 <tr>
                     <th>Karyawan</th>
-                    <th>Tugas / Proyek</th>
+                    <th>Lokasi</th>
                     <th>Waktu Submit</th>
                     <th>Status</th>
                 </tr>
@@ -78,7 +173,7 @@
                         </div>
                     </td>
                     <td style="color:var(--text-secondary);">
-                        {{ \Illuminate\Support\Str::limit($lp->deskripsi_pekerjaan, 40) }}
+                        {{ \Illuminate\Support\Str::limit($lp->lokasi, 40) }}
                     </td>
                     <td>{{ \Carbon\Carbon::parse($lp->created_at)->format('H:i') }}</td>
                     <td>
@@ -103,3 +198,52 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+const gridColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)';
+const textColor = isDark ? '#94a3b8' : '#475569';
+
+// Line Chart
+new Chart(document.getElementById('attendanceChart'), {
+    type: 'line',
+    data: {
+        labels: ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'],
+        datasets: [{
+            label: 'Hadir',
+            data: {{ json_encode($chartHadir ?? [0,0,0,0,0,0,0,0,0,0,0,0]) }},
+            borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)',
+            tension: 0.4, fill: true, pointBackgroundColor: '#10b981', pointRadius: 4
+        },{
+            label: 'Tidak Hadir',
+            data: {{ json_encode($chartTidakHadir ?? [0,0,0,0,0,0,0,0,0,0,0,0]) }},
+            borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.05)',
+            tension: 0.4, fill: true, pointBackgroundColor: '#ef4444', pointRadius: 4
+        }]
+    },
+    options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: textColor, font: { family: 'Outfit' } } } },
+        scales: {
+            x: { grid: { color: gridColor }, ticks: { color: textColor, font: { family: 'Outfit' } } },
+            y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: textColor, font: { family: 'Outfit' } } }
+        }
+    }
+});
+
+// Doughnut Chart
+new Chart(document.getElementById('statusChart'), {
+    type: 'doughnut',
+    data: {
+        labels: ['Hadir','Tidak Hadir'],
+        datasets: [{ data: [{{ $hadirKemarin ?? 0 }}, {{ $tidakHadirKemarin ?? 0 }}], backgroundColor: ['#10b981','#ef4444'], borderWidth: 0, hoverOffset: 6 }]
+    },
+    options: {
+        responsive: true, maintainAspectRatio: false, cutout: '70%',
+        plugins: { legend: { display: false } }
+    }
+});
+</script>
+@endpush

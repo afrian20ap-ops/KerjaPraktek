@@ -17,11 +17,7 @@
 
 @section('content')
 <div class="panel">
-    @if(session('success'))
-        <div style="padding: 1rem; background: var(--success); color: white; border-radius: var(--border-radius); margin-bottom: 1rem;">
-            <i class="fa-solid fa-check-circle"></i> {{ session('success') }}
-        </div>
-    @endif
+
     <div class="panel-header">
         <span class="panel-title">Periode Penggajian: {{ \Carbon\Carbon::now()->locale('id')->isoFormat('MMMM Y') }}</span>
         <div class="panel-actions">
@@ -98,7 +94,7 @@
             document.getElementById('kasbon_value').value = kasbon;
             document.getElementById('kasbonForm').submit();
         } else if (kasbon !== null) {
-            alert("Harap masukkan angka yang valid.");
+            showToast("Harap masukkan angka yang valid.", "warning");
         }
     }
 </script>

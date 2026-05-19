@@ -87,19 +87,21 @@
 
         <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
             {{-- Pilih Karyawan --}}
-            @if(isset($penggajian))
             <form class="filter-actions" action="{{ route('admin.gaji.slip') }}" method="GET" style="display:flex;gap:0.5rem;align-items:center;">
                 <label style="font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); white-space:nowrap;">Karyawan:</label>
-                <input type="text" id="searchInput" list="karyawanList" class="form-control" placeholder="Ketik nama atau NIK..." style="padding:0.35rem 0.75rem;font-size:0.85rem; min-width:250px;" value="{{ $penggajian ? strtoupper($penggajian->user->name) . ' (' . ($penggajian->user->nik ?? '-') . ')' : '' }}">
+                <input type="text" id="searchInput" list="karyawanList" class="form-control" placeholder="Ketik nama atau NIK..." style="padding:0.35rem 0.75rem;font-size:0.85rem; min-width:200px;" value="{{ isset($user) ? strtoupper($user->name) . ' (' . ($user->nik ?? '-') . ')' : '' }}">
                 <datalist id="karyawanList">
                     @foreach($semuaKaryawan as $karyawan)
                         <option data-id="{{ $karyawan->id }}" value="{{ strtoupper($karyawan->name) }} ({{ $karyawan->nik ?? '-' }})"></option>
                     @endforeach
                 </datalist>
-                <input type="hidden" name="user_id" id="hiddenUserId" value="{{ $penggajian->user_id ?? '' }}">
+                <input type="hidden" name="user_id" id="hiddenUserId" value="{{ $userId ?? '' }}">
+                <label style="font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); white-space:nowrap; margin-left: 0.5rem;">Dari:</label>
+                <input type="date" name="date_from" id="dateFrom" class="form-control" style="padding:0.35rem 0.75rem;font-size:0.85rem; width:145px;" value="{{ $periodeMulai ?? date('Y-m-01') }}">
+                <label style="font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); white-space:nowrap;">Sampai:</label>
+                <input type="date" name="date_to" id="dateTo" class="form-control" style="padding:0.35rem 0.75rem;font-size:0.85rem; width:145px;" value="{{ $periodeAkhir ?? date('Y-m-t') }}">
                 <button type="submit" class="btn btn-primary" style="padding:0.35rem 0.75rem;"><i class="fa-solid fa-search"></i> Tampilkan</button>
             </form>
-            @endif
 
             {{-- Cetak --}}
             <button onclick="window.print()" class="btn btn-outline no-print" style="border-color:var(--primary-500);color:var(--primary-500);padding:0.35rem 0.85rem;">
@@ -109,36 +111,34 @@
     </div>
 
     <div style="padding: 0 1.5rem 1.5rem;">
-        @if(session('success'))
-            <div class="alert-success"><i class="fa-solid fa-check-circle"></i> {{ session('success') }}</div>
-        @endif
 
-        @if(isset($penggajian))
+
+        @if(isset($user))
         {{-- ===== INFO CARD ===== --}}
         <div class="info-card">
             <div class="info-group">
-                <div class="info-row"><span class="info-label">NAMA KARYAWAN</span><span class="info-value" style="text-transform:uppercase;">{{ $penggajian->user->name }}</span></div>
-                <div class="info-row"><span class="info-label">BASIC / HARI</span><span class="info-value">Rp {{ number_format($penggajian->user->gaji_pokok_harian, 0, ',', '.') }}</span></div>
-                <div class="info-row"><span class="info-label">UANG LEMBUR / JAM</span><span class="info-value">Rp {{ number_format($penggajian->user->uang_lembur_per_jam, 0, ',', '.') }}</span></div>
-                <div class="info-row"><span class="info-label">UANG MAKAN / HARI</span><span class="info-value">Rp {{ number_format($penggajian->user->uang_makan_harian, 0, ',', '.') }}</span></div>
+                <div class="info-row"><span class="info-label">NAMA KARYAWAN</span><span class="info-value" style="text-transform:uppercase;">{{ $user->name }}</span></div>
+                <div class="info-row"><span class="info-label">BASIC / HARI</span><span class="info-value">Rp {{ number_format($user->gaji_pokok_harian, 0, ',', '.') }}</span></div>
+                <div class="info-row"><span class="info-label">UANG LEMBUR / JAM</span><span class="info-value">Rp {{ number_format($user->uang_lembur_per_jam, 0, ',', '.') }}</span></div>
+                <div class="info-row"><span class="info-label">UANG MAKAN / HARI</span><span class="info-value">Rp {{ number_format($user->uang_makan_harian, 0, ',', '.') }}</span></div>
             </div>
             <div class="info-group">
                 <div class="info-highlight">
                     <span style="font-size:0.82rem;font-weight:600;color:var(--text-secondary);">TOTAL GAJI DITERIMA</span>
-                    <span id="header-total-gaji">Rp {{ number_format($penggajian->total_gaji_bersih, 0, ',', '.') }}</span>
+                    <span id="header-total-gaji">Rp 0</span>
                 </div>
-                <div class="info-row"><span class="info-label">TOTAL KASBON</span><span class="info-value" style="color:var(--danger);" id="header-total-kasbon">{{ $penggajian->kasbon > 0 ? 'Rp '.number_format($penggajian->kasbon, 0, ',', '.') : '-' }}</span></div>
-                <div class="info-row"><span class="info-label">PERIODE</span><span class="info-value">{{ \Carbon\Carbon::parse($penggajian->periode_mulai)->format('d-M-y') }} s/d {{ \Carbon\Carbon::parse($penggajian->periode_akhir)->format('d-M-y') }}</span></div>
+                <div class="info-row"><span class="info-label">TOTAL KASBON</span><span class="info-value" style="color:var(--danger);" id="header-total-kasbon">-</span></div>
+                <div class="info-row"><span class="info-label">PERIODE</span><span class="info-value">{{ \Carbon\Carbon::parse($periodeMulai)->format('d-M-y') }} s/d {{ \Carbon\Carbon::parse($periodeAkhir)->format('d-M-y') }}</span></div>
             </div>
         </div>
 
         {{-- ===== FORM EDIT RINCIAN PER HARI ===== --}}
-        <form action="{{ route('admin.gaji.slip.update', $penggajian->id) }}" method="POST">
+        <form action="{{ $penggajian ? route('admin.gaji.slip.update', $penggajian->id) : '#' }}" method="POST">
             @csrf
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;" class="no-print">
                 <span style="font-size:0.85rem;color:var(--text-secondary);">
                     <i class="fa-solid fa-circle-info" style="color:var(--primary-500);"></i>
-                    Klik kolom angka untuk mengedit nilai <strong>Basic, Lembur, Makan, dan Kasbon</strong> per hari.
+                    Klik kolom untuk mengedit nilai <strong>Basic, Jam Lembur, Lembur (Rp), Makan, dan Kasbon</strong> per hari.
                 </span>
                 <button type="submit" class="btn btn-primary" style="padding:0.4rem 1rem;">
                     <i class="fa-solid fa-save"></i> Simpan Perubahan
@@ -168,22 +168,45 @@
                     </thead>
                     <tbody>
                         @php
+                            $grandHari = 0; $grandJamLembur = 0;
                             $grandGaji = 0; $grandLembur = 0; $grandMakan = 0;
                             $grandKasbon = 0; $grandJumlah = 0;
                         @endphp
 
                         @forelse($absensis as $index => $abs)
                         @php
-                            $basicDefault  = $abs->total_hari * $penggajian->user->gaji_pokok_harian;
-                            $lemburDefault = $abs->jam_lembur * $penggajian->user->uang_lembur_per_jam;
-                            $makanDefault  = $abs->dapat_uang_makan ? $penggajian->user->uang_makan_harian : 0;
+                            $realJamLembur = $abs->jam_lembur;
+                            if ($abs->jam_keluar) {
+                                $keluarC = \Carbon\Carbon::parse($abs->jam_keluar);
+                                $batas = \Carbon\Carbon::parse('17:00:00');
+                                if ($keluarC->gt($batas)) {
+                                    $realJamLembur = (int) floor(abs($keluarC->diffInMinutes($batas)) / 60);
+                                }
+                            }
+
+                            $realTotalHari = $abs->total_hari;
+                            if (\Carbon\Carbon::parse($abs->tanggal)->isSunday() && $abs->status === 'Hadir') {
+                                $realTotalHari = 1.5;
+                            }
+
+                            $basicDefault  = $realTotalHari * $user->gaji_pokok_harian;
+                            $lemburDefault = $realJamLembur * $user->uang_lembur_per_jam;
+                            $makanDefault  = $abs->dapat_uang_makan ? $user->uang_makan_harian : 0;
 
                             $valBasic  = $abs->nominal_basic  !== null ? $abs->nominal_basic  : $basicDefault;
+                            
+                            // Koreksi otomatis jika di database masih tersimpan perhitungan lama (1x gaji pokok padahal hari Minggu)
+                            if (\Carbon\Carbon::parse($abs->tanggal)->isSunday() && $valBasic == $user->gaji_pokok_harian) {
+                                $valBasic = $basicDefault;
+                            }
+
                             $valLembur = $abs->nominal_lembur !== null ? $abs->nominal_lembur : $lemburDefault;
                             $valMakan  = $abs->nominal_makan  !== null ? $abs->nominal_makan  : $makanDefault;
                             $valKasbon = $abs->nominal_kasbon !== null ? $abs->nominal_kasbon : 0;
                             $jumlah    = ($valBasic + $valLembur + $valMakan) - $valKasbon;
 
+                            $grandHari   += $realTotalHari;
+                            $grandJamLembur += $realJamLembur;
                             $grandGaji   += $valBasic;
                             $grandLembur += $valLembur;
                             $grandMakan  += $valMakan;
@@ -196,9 +219,9 @@
                             <td style="color:var(--text-secondary);">{{ \Carbon\Carbon::parse($abs->tanggal)->format('d-M-y') }}</td>
                             <td>{{ $abs->jam_masuk  ? substr($abs->jam_masuk, 0, 5)  : '-' }}</td>
                             <td>{{ $abs->jam_keluar ? substr($abs->jam_keluar, 0, 5) : '-' }}</td>
-                            <td style="font-weight:700;color:var(--primary-600);">{{ $abs->total_hari }}</td>
+                            <td style="font-weight:700;color:var(--primary-600);">{{ $realTotalHari }}</td>
                             <td><input type="number" name="absensi[{{ $abs->id }}][basic]"  value="{{ (int)$valBasic }}"  class="input-rupiah"></td>
-                            <td style="font-weight:700;">{{ $abs->jam_lembur ?: '-' }}</td>
+                            <td><input type="number" name="absensi[{{ $abs->id }}][jam_lembur]" value="{{ $realJamLembur ?: 0 }}" class="input-jam" data-rate="{{ $user->uang_lembur_per_jam }}" style="width: 50px; text-align: center; border: 1px solid var(--border-color); border-radius: 4px; padding: 0.3rem;" min="0" step="1"></td>
                             <td><input type="number" name="absensi[{{ $abs->id }}][lembur]" value="{{ (int)$valLembur }}" class="input-rupiah"></td>
                             <td><input type="number" name="absensi[{{ $abs->id }}][makan]"  value="{{ (int)$valMakan }}"  class="input-rupiah"></td>
                             <td><input type="number" name="absensi[{{ $abs->id }}][kasbon]" value="{{ (int)$valKasbon }}" class="input-rupiah" style="color:var(--danger);"></td>
@@ -215,9 +238,9 @@
                     <tfoot>
                         <tr>
                             <th colspan="5" style="text-align:right;padding-right:1rem;">GRAND TOTAL</th>
-                            <th>{{ number_format($penggajian->total_kehadiran_hari, 1, ',', '.') }}</th>
+                            <th>{{ number_format($grandHari, 1, ',', '.') }}</th>
                             <th id="footer-grand-gaji">{{ number_format($grandGaji, 0, ',', '.') }}</th>
-                            <th>{{ $penggajian->total_jam_lembur }}</th>
+                            <th id="footer-grand-jam-lembur">{{ $grandJamLembur }}</th>
                             <th id="footer-grand-lembur">{{ number_format($grandLembur, 0, ',', '.') }}</th>
                             <th id="footer-grand-makan">{{ number_format($grandMakan, 0, ',', '.') }}</th>
                             <th style="color:var(--danger);" id="footer-grand-kasbon">{{ $grandKasbon > 0 ? number_format($grandKasbon, 0, ',', '.') : '-' }}</th>
@@ -229,11 +252,75 @@
         </form>
 
         @else
-        {{-- ===== STATE KOSONG: Belum ada data ===== --}}
-        <div style="text-align:center;padding:4rem 2rem;color:var(--text-muted);">
-            <i class="fa-solid fa-file-circle-question" style="font-size:3rem;margin-bottom:1rem;display:block;color:var(--border-color);"></i>
-            <p style="font-size:1rem;margin-bottom:0.5rem;">Belum ada slip gaji yang digenerate.</p>
-            <p style="font-size:0.85rem;">Klik tombol <strong>Generate Gaji</strong> di atas untuk membuat rekap gaji bulan ini.</p>
+        {{-- ===== STATE KOSONG ===== --}}
+        <div class="info-card" style="opacity: 0.6; pointer-events: none;">
+            <div class="info-group">
+                <div class="info-row"><span class="info-label">NAMA KARYAWAN</span><span class="info-value">-</span></div>
+                <div class="info-row"><span class="info-label">BASIC / HARI</span><span class="info-value">Rp 0</span></div>
+                <div class="info-row"><span class="info-label">UANG LEMBUR / JAM</span><span class="info-value">Rp 0</span></div>
+                <div class="info-row"><span class="info-label">UANG MAKAN / HARI</span><span class="info-value">Rp 0</span></div>
+            </div>
+            <div class="info-group">
+                <div class="info-highlight">
+                    <span style="font-size:0.82rem;font-weight:600;color:var(--text-secondary);">TOTAL GAJI DITERIMA</span>
+                    <span id="header-total-gaji">Rp 0</span>
+                </div>
+                <div class="info-row"><span class="info-label">TOTAL KASBON</span><span class="info-value" style="color:var(--danger);">-</span></div>
+                <div class="info-row"><span class="info-label">PERIODE</span><span class="info-value">-</span></div>
+            </div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;" class="no-print">
+            <span style="font-size:0.85rem;color:var(--text-secondary);">
+                <i class="fa-solid fa-circle-info" style="color:var(--primary-500);"></i>
+                Silakan pilih karyawan terlebih dahulu untuk melihat dan mengedit rincian gaji.
+            </span>
+            <button type="button" class="btn btn-primary" style="padding:0.4rem 1rem; opacity: 0.5; cursor: not-allowed;">
+                <i class="fa-solid fa-save"></i> Simpan Perubahan
+            </button>
+        </div>
+
+        <div class="table-responsive" style="border-radius:var(--border-radius);border:1px solid var(--border-color);overflow:auto; opacity: 0.6;">
+            <table class="table-report">
+                <thead>
+                    <tr>
+                        <th rowspan="2">NO</th>
+                        <th rowspan="2">HARI KERJA</th>
+                        <th rowspan="2">TANGGAL</th>
+                        <th colspan="2">JAM DATANG & PULANG</th>
+                        <th rowspan="2">TOTAL<br>HARI</th>
+                        <th rowspan="2">TOTAL GAJI<br>(Rp)</th>
+                        <th rowspan="2">JAM<br>LEMBUR</th>
+                        <th rowspan="2">TOTAL LEMBUR<br>(Rp)</th>
+                        <th rowspan="2">UANG MAKAN<br>(Rp)</th>
+                        <th rowspan="2">KASBON<br>(Rp)</th>
+                        <th rowspan="2">JUMLAH</th>
+                    </tr>
+                    <tr>
+                        <th>IN</th>
+                        <th>OUT</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="12" style="text-align:center;padding:2rem;color:var(--text-muted);">
+                            Belum ada karyawan yang dipilih.
+                        </td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th colspan="5" style="text-align:right;padding-right:1rem;">GRAND TOTAL</th>
+                        <th>0</th>
+                        <th>0</th>
+                        <th>0</th>
+                        <th>0</th>
+                        <th>0</th>
+                        <th style="color:var(--danger);">-</th>
+                        <th style="font-size:0.95rem;color:var(--success);">0</th>
+                    </tr>
+                </tfoot>
+            </table>
         </div>
         @endif
     </div>
@@ -253,6 +340,7 @@ document.addEventListener('DOMContentLoaded', function () {
         let totalMakan = 0;
         let totalKasbon = 0;
         let totalJumlah = 0;
+        let totalJamLembur = 0;
 
         document.querySelectorAll('tbody tr').forEach(function(row) {
             const cols = row.querySelectorAll('.input-rupiah');
@@ -261,17 +349,20 @@ document.addEventListener('DOMContentLoaded', function () {
                 const lembur = parseFloat(cols[1].value) || 0;
                 const makan  = parseFloat(cols[2].value) || 0;
                 const kasbon = parseFloat(cols[3].value) || 0;
+                const jamLembur = parseFloat(row.querySelector('.input-jam')?.value) || 0;
                 
                 totalGaji += basic;
                 totalLembur += lembur;
                 totalMakan += makan;
                 totalKasbon += kasbon;
+                totalJamLembur += jamLembur;
                 totalJumlah += (basic + lembur + makan - kasbon);
             }
         });
 
         // Update footer
         if(document.getElementById('footer-grand-gaji')) document.getElementById('footer-grand-gaji').textContent = totalGaji.toLocaleString('id-ID');
+        if(document.getElementById('footer-grand-jam-lembur')) document.getElementById('footer-grand-jam-lembur').textContent = totalJamLembur;
         if(document.getElementById('footer-grand-lembur')) document.getElementById('footer-grand-lembur').textContent = totalLembur.toLocaleString('id-ID');
         if(document.getElementById('footer-grand-makan')) document.getElementById('footer-grand-makan').textContent = totalMakan.toLocaleString('id-ID');
         if(document.getElementById('footer-grand-kasbon')) document.getElementById('footer-grand-kasbon').textContent = totalKasbon > 0 ? totalKasbon.toLocaleString('id-ID') : '-';
@@ -300,6 +391,21 @@ document.addEventListener('DOMContentLoaded', function () {
             calculateGrandTotals();
         });
     });
+
+    document.querySelectorAll('.input-jam').forEach(function(input) {
+        input.addEventListener('input', function() {
+            const row = this.closest('tr');
+            const rate = parseFloat(this.getAttribute('data-rate')) || 0;
+            const hours = parseFloat(this.value) || 0;
+            const totalLemburInput = row.querySelectorAll('.input-rupiah')[1];
+            
+            if (totalLemburInput) {
+                totalLemburInput.value = hours * rate;
+                // Trigger input event to update grand totals
+                totalLemburInput.dispatchEvent(new Event('input'));
+            }
+        });
+    });
 });
 </script>
 <script>
@@ -308,21 +414,65 @@ document.addEventListener('DOMContentLoaded', function() {
     const hiddenUserId = document.getElementById('hiddenUserId');
     const form = searchInput.closest('form');
 
+    function findMatch() {
+        if (!searchInput.value) return null;
+        const val = searchInput.value.toLowerCase();
+        let foundId = null;
+        let exactMatch = false;
+
+        const options = document.querySelectorAll('#karyawanList option');
+        for (let i = 0; i < options.length; i++) {
+            if (options[i].value.toLowerCase() === val) {
+                foundId = options[i].getAttribute('data-id');
+                exactMatch = true;
+                break;
+            }
+        }
+        
+        if (!exactMatch && val.length > 0) {
+            for (let i = 0; i < options.length; i++) {
+                if (options[i].value.toLowerCase().includes(val)) {
+                    foundId = options[i].getAttribute('data-id');
+                    searchInput.value = options[i].value; // auto-complete
+                    break;
+                }
+            }
+        }
+        return foundId;
+    }
+
     searchInput.addEventListener('change', function() {
-        const selectedOption = document.querySelector(`#karyawanList option[value="${this.value}"]`);
-        if (selectedOption) {
-            hiddenUserId.value = selectedOption.getAttribute('data-id');
+        if (!this.value) {
+            hiddenUserId.value = '';
+            return;
+        }
+        const foundId = findMatch();
+        if (foundId) {
+            hiddenUserId.value = foundId;
             form.submit();
         }
     });
 
     form.addEventListener('submit', function(e) {
-        const selectedOption = document.querySelector(`#karyawanList option[value="${searchInput.value}"]`);
-        if (selectedOption) {
-            hiddenUserId.value = selectedOption.getAttribute('data-id');
+        if (searchInput.value) {
+            const foundId = findMatch();
+            if (foundId) {
+                hiddenUserId.value = foundId;
+            } else {
+                e.preventDefault();
+                if (typeof showToast !== 'undefined') {
+                    showToast("Karyawan tidak ditemukan. Silakan ketik nama atau NIK dengan benar.", "danger");
+                } else {
+                    alert("Karyawan tidak ditemukan. Silakan ketik nama atau NIK dengan benar.");
+                }
+            }
         } else {
             e.preventDefault();
-            alert("Karyawan tidak ditemukan. Silakan pilih dari daftar.");
+            if (typeof showToast !== 'undefined') {
+                showToast("Silakan pilih karyawan terlebih dahulu.", "warning");
+            } else {
+                alert("Silakan pilih karyawan terlebih dahulu.");
+            }
         }
     });
 });

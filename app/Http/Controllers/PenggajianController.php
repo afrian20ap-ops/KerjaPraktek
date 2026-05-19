@@ -105,42 +105,49 @@ class PenggajianController extends Controller
 
     public function slip(Request $request)
     {
-        $userId = $request->query('user_id');
+        $userId    = $request->query('user_id');
+        $dateFrom  = $request->query('date_from', Carbon::now()->startOfMonth()->format('Y-m-d'));
+        $dateTo    = $request->query('date_to',   Carbon::now()->endOfMonth()->format('Y-m-d'));
 
-        $periodeMulai = Carbon::now()->startOfMonth()->format('Y-m-d');
-        $periodeAkhir = Carbon::now()->endOfMonth()->format('Y-m-d');
+        // Pastikan format tanggal valid
+        try {
+            $periodeMulai = Carbon::createFromFormat('Y-m-d', $dateFrom)->format('Y-m-d');
+            $periodeAkhir = Carbon::createFromFormat('Y-m-d', $dateTo)->format('Y-m-d');
+        } catch (\Exception $e) {
+            $periodeMulai = Carbon::now()->startOfMonth()->format('Y-m-d');
+            $periodeAkhir = Carbon::now()->endOfMonth()->format('Y-m-d');
+        }
 
-        // Jika tidak ada user_id, pilih karyawan pertama
+        // Pastikan date_from tidak lebih besar dari date_to
+        if ($periodeMulai > $periodeAkhir) {
+            $temp = $periodeMulai;
+            $periodeMulai = $periodeAkhir;
+            $periodeAkhir = $temp;
+        }
+
+        // Ambil semua karyawan untuk dropdown pencarian
+        $semuaKaryawan = User::where('role', 'karyawan')->orderBy('name', 'asc')->get();
+
+        // Jika tidak ada user_id, tampilkan state kosong
         if (!$userId) {
-            $firstUser = User::where('role', '!=', 'admin')->orderBy('name', 'asc')->first();
-            if (!$firstUser) {
-                return view('admin.gaji.slip');
-            }
-            $userId = $firstUser->id;
+            return view('admin.gaji.slip', compact('semuaKaryawan', 'periodeMulai', 'periodeAkhir'))->with('belumPilih', true);
         }
 
         $user = User::findOrFail($userId);
 
-        // Cari penggajian bulan ini
-        $penggajian = Penggajian::with('user')->where('user_id', $userId)
-            ->where('periode_mulai', $periodeMulai)
-            ->where('periode_akhir', $periodeAkhir)
-            ->first();
-
-        if (!$penggajian) {
-            $penggajian = $this->hitungGaji($userId, $periodeMulai, $periodeAkhir, 0);
-            $penggajian->load('user');
-        }
-        
+        // Langsung query absensi berdasarkan rentang tanggal yang dipilih
         $absensis = Absensi::where('user_id', $userId)
             ->whereBetween('tanggal', [$periodeMulai, $periodeAkhir])
             ->orderBy('tanggal', 'asc')
             ->get();
 
-        // Ambil semua karyawan untuk dropdown pencarian
-        $semuaKaryawan = User::where('role', '!=', 'admin')->orderBy('name', 'asc')->get();
+        // Cari penggajian jika ada (untuk referensi kasbon, tapi tidak wajib)
+        $penggajian = Penggajian::where('user_id', $userId)
+            ->where('periode_mulai', $periodeMulai)
+            ->where('periode_akhir', $periodeAkhir)
+            ->first();
 
-        return view('admin.gaji.slip', compact('penggajian', 'absensis', 'semuaKaryawan'));
+        return view('admin.gaji.slip', compact('user', 'absensis', 'semuaKaryawan', 'userId', 'periodeMulai', 'periodeAkhir', 'penggajian'));
     }
 
     public function updateSlip(Request $request, $id)
@@ -151,6 +158,7 @@ class PenggajianController extends Controller
         $grandUangLembur = 0;
         $grandUangMakan = 0;
         $grandKasbon = 0;
+        $grandJamLembur = 0;
 
         if ($request->has('absensi')) {
             foreach ($request->absensi as $absId => $data) {
@@ -160,16 +168,26 @@ class PenggajianController extends Controller
                     $abs->nominal_lembur = $data['lembur'];
                     $abs->nominal_makan = $data['makan'];
                     $abs->nominal_kasbon = $data['kasbon'];
+                    
+                    if (isset($data['jam_lembur'])) {
+                        $abs->jam_lembur = $data['jam_lembur'];
+                    }
+                    
                     $abs->save();
 
                     $grandGajiPokok += $data['basic'];
                     $grandUangLembur += $data['lembur'];
                     $grandUangMakan += $data['makan'];
                     $grandKasbon += $data['kasbon'];
+                    if (isset($data['jam_lembur'])) {
+                        $grandJamLembur += $data['jam_lembur'];
+                    }
                 }
             }
         }
 
+        $penggajian->total_kehadiran_hari = $penggajian->total_kehadiran_hari; // Tetap
+        $penggajian->total_jam_lembur   = $grandJamLembur;
         $penggajian->total_gaji_pokok   = $grandGajiPokok;
         $penggajian->total_uang_lembur  = $grandUangLembur;
         $penggajian->total_uang_makan   = $grandUangMakan;
@@ -177,27 +195,56 @@ class PenggajianController extends Controller
         $penggajian->total_gaji_bersih  = ($grandGajiPokok + $grandUangLembur + $grandUangMakan) - $grandKasbon;
         $penggajian->save();
 
-        return redirect()->route('admin.gaji.slip', ['user_id' => $penggajian->user_id])
-                         ->with('success', 'Rincian Slip Gaji berhasil diperbarui!');
+        return redirect()->route('admin.gaji.slip', [
+            'user_id'   => $penggajian->user_id,
+            'date_from' => $penggajian->periode_mulai,
+            'date_to'   => $penggajian->periode_akhir,
+        ])->with('success', 'Rincian Slip Gaji berhasil diperbarui!');
     }
 
     public function slipKaryawan(Request $request)
     {
-        // Karena tidak ada sistem auth yang fix, kita asumsikan karyawan melihat slip terakhirnya
-        // Idealnya: $userId = auth()->id();
-        $userId = 1; // dummy user id untuk testing
-        $penggajian = Penggajian::with('user')->where('user_id', $userId)->latest()->first();
-        
-        if (!$penggajian) {
-            // fallback for dummy UI if no payroll generated yet
-            return view('karyawan.gaji.slip');
+        // Gunakan user_id dari session
+        $userId = session('user_id');
+
+        if (!$userId) {
+            return redirect()->route('login');
         }
 
+        $user = User::findOrFail($userId);
+
+        // Baca rentang tanggal dari request, default: bulan berjalan
+        $dateFrom = $request->query('date_from', Carbon::now()->startOfMonth()->format('Y-m-d'));
+        $dateTo   = $request->query('date_to',   Carbon::now()->endOfMonth()->format('Y-m-d'));
+
+        try {
+            $periodeMulai = Carbon::createFromFormat('Y-m-d', $dateFrom)->format('Y-m-d');
+            $periodeAkhir = Carbon::createFromFormat('Y-m-d', $dateTo)->format('Y-m-d');
+        } catch (\Exception $e) {
+            $periodeMulai = Carbon::now()->startOfMonth()->format('Y-m-d');
+            $periodeAkhir = Carbon::now()->endOfMonth()->format('Y-m-d');
+        }
+
+        // Pastikan date_from tidak lebih besar dari date_to
+        if ($periodeMulai > $periodeAkhir) {
+            $temp = $periodeMulai;
+            $periodeMulai = $periodeAkhir;
+            $periodeAkhir = $temp;
+        }
+
+        // Langsung query absensi berdasarkan rentang tanggal yang dipilih
         $absensis = Absensi::where('user_id', $userId)
-            ->whereBetween('tanggal', [$penggajian->periode_mulai, $penggajian->periode_akhir])
+            ->whereBetween('tanggal', [$periodeMulai, $periodeAkhir])
             ->orderBy('tanggal', 'asc')
             ->get();
 
-        return view('karyawan.gaji.slip', compact('penggajian', 'absensis'));
+        // Cari penggajian jika ada (untuk referensi)
+        $penggajian = Penggajian::with('user')
+            ->where('user_id', $userId)
+            ->where('periode_mulai', $periodeMulai)
+            ->where('periode_akhir', $periodeAkhir)
+            ->first();
+
+        return view('karyawan.gaji.slip', compact('user', 'absensis', 'periodeMulai', 'periodeAkhir', 'penggajian'));
     }
 }

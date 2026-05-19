@@ -23,28 +23,14 @@
         </button>
     </div>
 
-    @if(session('success'))
-    <div style="padding:1rem 1.5rem; background:var(--success); color:white; font-weight:500;">
-        <i class="fa-solid fa-check-circle"></i> {{ session('success') }}
-    </div>
-    @endif
-    @if($errors->any())
-    <div style="padding:1rem 1.5rem; background:var(--danger); color:white; font-weight:500;">
-        <i class="fa-solid fa-triangle-exclamation"></i> Terjadi kesalahan saat menyimpan data.
-        <ul style="margin-top:0.5rem; padding-left:1.5rem; font-size:0.85rem;">
-            @foreach($errors->all() as $error)
-                <li>{{ $error }}</li>
-            @endforeach
-        </ul>
-    </div>
-    @endif
+
 
     <div class="table-responsive">
         <table>
             <thead>
                 <tr>
                     <th>NO</th>
-                    <th>NAMA & NIK</th>
+                    <th>NAMA & USERNAME</th>
                     <th>ROLE & DIVISI</th>
                     <th>BASIC / HR</th>
                     <th>MAKAN / HR</th>
@@ -58,7 +44,10 @@
                     <td style="color:var(--text-muted);">{{ $index + 1 }}</td>
                     <td>
                         <div style="font-weight:700;color:var(--text-primary);">{{ $k->name }}</div>
-                        <div style="font-size:0.8rem;color:var(--text-secondary);font-family:monospace;">NIK: {{ $k->nik ?? '-' }}</div>
+                        <div style="font-size:0.8rem;color:var(--text-secondary);font-family:monospace;">
+                            @username: {{ $k->username ?? '-' }}
+                        </div>
+                        <div style="font-size:0.75rem;color:var(--text-muted);font-family:monospace;">NIK: {{ $k->nik ?? '-' }}</div>
                     </td>
                     <td>
                         <div>
@@ -74,7 +63,19 @@
                     <td style="font-family:monospace;color:var(--text-secondary);">{{ number_format($k->uang_makan_harian, 0, ',', '.') }}</td>
                     <td style="font-family:monospace;color:var(--text-secondary);">{{ number_format($k->uang_lembur_per_jam, 0, ',', '.') }}</td>
                     <td style="text-align:center;">
-                        <button type="button" class="btn btn-outline" style="padding:0.25rem 0.5rem;font-size:0.8rem;margin-right:0.25rem;" onclick="openEditModal({{ $k->id }}, '{{ addslashes($k->name) }}', '{{ $k->email }}', '{{ $k->nik }}', '{{ $k->role }}', '{{ $k->divisi }}', '{{ $k->jabatan }}', {{ $k->gaji_pokok_harian }}, {{ $k->uang_makan_harian }}, {{ $k->uang_lembur_per_jam }})">
+                        <button type="button" class="btn btn-outline" style="padding:0.25rem 0.5rem;font-size:0.8rem;margin-right:0.25rem;"
+                            onclick="openEditModal(
+                                {{ $k->id }},
+                                '{{ addslashes($k->name) }}',
+                                '{{ $k->username ?? '' }}',
+                                '{{ $k->nik }}',
+                                '{{ $k->role }}',
+                                '{{ $k->divisi }}',
+                                '{{ $k->jabatan }}',
+                                {{ $k->gaji_pokok_harian }},
+                                {{ $k->uang_makan_harian }},
+                                {{ $k->uang_lembur_per_jam }}
+                            )">
                             <i class="fa-solid fa-pen"></i> Edit
                         </button>
                         <form action="{{ route('admin.karyawan.destroy', $k->id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Yakin ingin menghapus pegawai ini?');">
@@ -111,8 +112,11 @@
                     <input type="text" name="name" class="form-control" required>
                 </div>
                 <div class="form-group">
-                    <label>Email (Untuk Login)</label>
-                    <input type="email" name="email" class="form-control" required>
+                    <label>Username <small style="color:var(--danger);">*</small></label>
+                    <input type="text" name="username" class="form-control" required
+                           placeholder="cth: budi_santoso"
+                           pattern="[a-zA-Z0-9_\-]+"
+                           title="Hanya huruf, angka, underscore, dan tanda hubung">
                 </div>
                 <div class="form-group">
                     <label>Password Login</label>
@@ -178,8 +182,10 @@
                     <input type="text" name="name" id="edit_name" class="form-control" required>
                 </div>
                 <div class="form-group">
-                    <label>Email (Untuk Login)</label>
-                    <input type="email" name="email" id="edit_email" class="form-control" required>
+                    <label>Username <small style="color:var(--danger);">*</small></label>
+                    <input type="text" name="username" id="edit_username" class="form-control" required
+                           pattern="[a-zA-Z0-9_\-]+"
+                           title="Hanya huruf, angka, underscore, dan tanda hubung">
                 </div>
                 <div class="form-group">
                     <label>Password Baru <small style="color:var(--text-muted);">(opsional)</small></label>
@@ -230,7 +236,6 @@
 </div>
 
 <style>
-/* CSS Modal (Overlay) */
 .custom-modal-overlay { display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.6); z-index:99999; align-items:center; justify-content:center; }
 .custom-modal-overlay.show { display:flex !important; }
 .custom-modal-content { background:var(--bg-card); width:100%; max-width:650px; margin:auto; border-radius:var(--border-radius-lg); box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); overflow:hidden; position:relative; }
@@ -252,18 +257,17 @@ function openModal(id) {
 function closeModal(id) {
     document.getElementById(id).classList.remove('show');
 }
-function openEditModal(id, name, email, nik, role, divisi, jabatan, basic, makan, lembur) {
+function openEditModal(id, name, username, nik, role, divisi, jabatan, basic, makan, lembur) {
     document.getElementById('editForm').action = '/admin/karyawan/' + id;
-    document.getElementById('edit_name').value = name;
-    document.getElementById('edit_email').value = email;
-    document.getElementById('edit_nik').value = nik;
-    document.getElementById('edit_role').value = role;
-    document.getElementById('edit_divisi').value = divisi;
-    document.getElementById('edit_jabatan').value = jabatan;
-    document.getElementById('edit_gaji').value = basic;
-    document.getElementById('edit_makan').value = makan;
-    document.getElementById('edit_lembur').value = lembur;
-    
+    document.getElementById('edit_name').value     = name;
+    document.getElementById('edit_username').value = username;
+    document.getElementById('edit_nik').value      = nik;
+    document.getElementById('edit_role').value     = role;
+    document.getElementById('edit_divisi').value   = divisi;
+    document.getElementById('edit_jabatan').value  = jabatan;
+    document.getElementById('edit_gaji').value     = basic;
+    document.getElementById('edit_makan').value    = makan;
+    document.getElementById('edit_lembur').value   = lembur;
     openModal('editModal');
 }
 </script>

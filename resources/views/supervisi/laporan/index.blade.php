@@ -32,32 +32,50 @@
     .badge-disetujui { background:color-mix(in srgb,var(--success) 15%,transparent); color:var(--success); border:1px solid var(--success); padding:0.25rem 0.75rem; border-radius:99px; font-size:0.75rem; font-weight:700; }
     .badge-terkirim  { background:color-mix(in srgb,var(--warning) 15%,transparent); color:#b45309; border:1px solid #f59e0b; padding:0.25rem 0.75rem; border-radius:99px; font-size:0.75rem; font-weight:700; }
     .badge-draft     { background:color-mix(in srgb,var(--text-muted) 10%,transparent); color:var(--text-muted); border:1px solid var(--border-color); padding:0.25rem 0.75rem; border-radius:99px; font-size:0.75rem; font-weight:700; }
+
+    .foto-grid-sv { display:grid; grid-template-columns:repeat(3,1fr); gap:0.6rem; margin-top:0.5rem; }
+    @media(max-width:700px){ .foto-grid-sv { grid-template-columns:repeat(2,1fr); } }
+    .foto-item-sv { border-radius:0.45rem; border:1px solid var(--border-color); overflow:hidden; background:var(--bg-body); }
+    .foto-item-sv img { width:100%; aspect-ratio:4/3; object-fit:cover; display:block; cursor:pointer; transition:opacity 0.15s; }
+    .foto-item-sv img:hover { opacity:0.85; }
+    .foto-item-desc-sv { padding:0.35rem 0.55rem; font-size:0.75rem; color:var(--text-secondary); line-height:1.4; border-top:1px solid var(--border-color); background:var(--bg-card); }
+    .foto-item-dl-sv { padding:0.25rem 0.55rem; background:var(--bg-card); border-top:1px solid var(--border-color); }
+    .foto-item-dl-sv a { font-size:0.7rem; color:var(--primary-600); text-decoration:none; }
+    .foto-item-dl-sv a:hover { text-decoration:underline; }
 </style>
 
-{{-- FILTER MINGGU --}}
-<form method="GET" action="{{ route('supervisi.laporan') }}" class="week-filter">
-    <label><i class="fa-solid fa-calendar-week" style="color:var(--primary-500);margin-right:0.3rem;"></i>Minggu ke-:</label>
-    <input type="number" name="minggu" value="{{ $minggu }}" min="1" max="53" style="width:70px;text-align:center;">
-    <label>Tahun:</label>
-    <input type="number" name="tahun" value="{{ $tahun }}" min="2020" max="2099" style="width:90px;text-align:center;">
+{{-- FILTER TANGGAL --}}
+<form method="GET" action="{{ route('supervisi.laporan') }}" class="week-filter" onsubmit="return validateDateRange(this)">
+    <label><i class="fa-solid fa-calendar-days" style="color:var(--primary-500);margin-right:0.3rem;"></i>Dari:</label>
+    <input type="date" name="tanggal_dari" value="{{ request('tanggal_dari', now()->subDays(7)->format('Y-m-d')) }}" style="width:140px;" required>
+    <label>Sampai:</label>
+    <input type="date" name="tanggal_sampai" value="{{ request('tanggal_sampai', now()->format('Y-m-d')) }}" style="width:140px;" required>
     <button type="submit" class="btn btn-primary" style="padding:0.4rem 0.85rem;font-size:0.85rem;"><i class="fa-solid fa-search"></i> Tampilkan</button>
-    <span class="week-badge">{{ $mulai->locale('id')->isoFormat('D MMM') }} – {{ $akhir->locale('id')->isoFormat('D MMM Y') }}</span>
-    
-    @if($mingguList->count())
-    <div style="margin-left:auto;display:flex;align-items:center;gap:0.5rem;">
-        <label>Riwayat:</label>
-        <select onchange="window.location=this.value" style="min-width:180px;">
-            <option value="">-- Pilih Minggu --</option>
-            @foreach($mingguList as $m)
-            <option value="{{ route('supervisi.laporan', ['minggu'=>$m->minggu,'tahun'=>$m->tahun]) }}"
-                    {{ $m->minggu == $minggu && $m->tahun == $tahun ? 'selected' : '' }}>
-                Minggu {{ $m->minggu }} / {{ $m->tahun }}
-            </option>
-            @endforeach
-        </select>
-    </div>
-    @endif
+    <span class="week-badge" id="dateRange">{{ \Carbon\Carbon::parse(request('tanggal_dari', now()->subDays(7)->format('Y-m-d')))->locale('id')->isoFormat('D MMM') }} – {{ \Carbon\Carbon::parse(request('tanggal_sampai', now()->format('Y-m-d')))->locale('id')->isoFormat('D MMM Y') }}</span>
 </form>
+<script>
+function validateDateRange(form) {
+    const tanggalDari = new Date(form.tanggal_dari.value);
+    const tanggalSampai = new Date(form.tanggal_sampai.value);
+    const diffDays = Math.ceil(Math.abs(tanggalSampai - tanggalDari) / (1000 * 60 * 60 * 24));
+    if (diffDays > 31) { showToast('Rentang tanggal maksimal 31 hari. Anda memilih ' + diffDays + ' hari.', 'warning'); return false; }
+    if (tanggalSampai < tanggalDari) { showToast('Tanggal sampai harus lebih besar atau sama dengan tanggal dari.', 'danger'); return false; }
+    return true;
+}
+document.addEventListener('DOMContentLoaded', function() {
+    const tanggalDari = document.querySelector('input[name="tanggal_dari"]');
+    const tanggalSampai = document.querySelector('input[name="tanggal_sampai"]');
+    function updateDateRange() {
+        if (tanggalDari.value && tanggalSampai.value) {
+            const formatter = new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short' });
+            const formatterYear = new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+            document.getElementById('dateRange').textContent = formatter.format(new Date(tanggalDari.value)) + ' – ' + formatterYear.format(new Date(tanggalSampai.value));
+        }
+    }
+    tanggalDari.addEventListener('change', updateDateRange);
+    tanggalSampai.addEventListener('change', updateDateRange);
+});
+</script>
 
 {{-- STATISTIK --}}
 @php
@@ -79,12 +97,6 @@
         <div class="stat-lbl">Menunggu Persetujuan</div>
     </div>
 </div>
-
-@if(session('success'))
-<div style="padding:0.85rem 1.25rem;background:var(--success);color:white;border-radius:var(--border-radius);margin-bottom:1rem;font-weight:500;">
-    <i class="fa-solid fa-check-circle"></i> {{ session('success') }}
-</div>
-@endif
 
 {{-- DAFTAR LAPORAN --}}
 @forelse($laporan as $lp)
@@ -117,38 +129,47 @@
     </div>
 
     <div class="laporan-body">
-        <div class="section-lbl">Deskripsi Pekerjaan</div>
-        <p>{{ $lp->deskripsi_pekerjaan }}</p>
-
-        @if($lp->kendala)
-        <div class="section-lbl">Kendala</div>
-        <p>{{ $lp->kendala }}</p>
-        @endif
-
-        @if($lp->solusi)
-        <div class="section-lbl">Solusi</div>
-        <p>{{ $lp->solusi }}</p>
-        @endif
-
-        @if($lp->foto_path)
-        <div style="margin-top:0.75rem;">
-            <a href="{{ asset('storage/' . $lp->foto_path) }}" download="Foto_Laporan_{{ \Carbon\Carbon::parse($lp->tanggal)->format('Ymd') }}_{{ $lp->user->name }}.jpg" class="btn btn-outline" style="padding:0.3rem 0.75rem;font-size:0.82rem;color:var(--primary-600);border-color:var(--primary-500);">
-                <i class="fa-solid fa-download"></i> Download Foto Lampiran
-            </a>
+        @if(!empty($lp->foto_paths))
+        <div class="section-lbl"><i class="fa-solid fa-camera" style="color:var(--primary-500);margin-right:0.3rem;"></i>Dokumentasi Foto ({{ count($lp->foto_paths) }})</div>
+        <div class="foto-grid-sv">
+            @foreach($lp->foto_paths as $idx => $fpath)
+            <div class="foto-item-sv">
+                <img src="{{ $fpath }}" alt="Foto {{ $idx+1 }}" onclick="openLightboxSv('{{ $fpath }}')" />
+                <div class="foto-item-desc-sv">
+                    @if(!empty($lp->foto_deskripsis[$idx]))
+                        <i class="fa-solid fa-circle-info" style="color:var(--primary-500);margin-right:0.2rem;font-size:0.68rem;"></i>
+                        {{ $lp->foto_deskripsis[$idx] }}
+                    @else
+                        <span style="color:var(--text-muted);font-style:italic;">Foto {{ $idx+1 }}</span>
+                    @endif
+                </div>
+                <div class="foto-item-dl-sv">
+                    <a href="{{ $fpath }}" download>
+                        <i class="fa-solid fa-download"></i> Download
+                    </a>
+                </div>
+            </div>
+            @endforeach
         </div>
         @endif
     </div>
 
-    @if($lp->status !== 'Disetujui')
-    <div style="margin-top:0.85rem;padding-top:0.85rem;border-top:1px dashed var(--border-color);display:flex;justify-content:flex-end;">
-        <form action="{{ route('supervisi.laporan.approve', $lp->id) }}" method="POST">
+    {{-- TOMBOL AKSI --}}
+    <div style="margin-top:0.85rem;padding-top:0.85rem;border-top:1px dashed var(--border-color);display:flex;justify-content:flex-end;align-items:center;gap:0.6rem;">
+        <a href="{{ route('supervisi.laporan.download', $lp->id) }}"
+           class="btn btn-outline"
+           style="padding:0.35rem 0.9rem;font-size:0.82rem;border-color:#16a34a;color:#16a34a;display:inline-flex;align-items:center;gap:0.4rem;">
+            <i class="fa-solid fa-file-excel"></i> Unduh Laporan
+        </a>
+        @if($lp->status !== 'Disetujui')
+        <form action="{{ route('supervisi.laporan.approve', $lp->id) }}" method="POST" style="margin:0;">
             @csrf
             <button type="submit" class="btn btn-primary" style="padding:0.35rem 0.85rem;font-size:0.82rem;">
                 <i class="fa-solid fa-check"></i> Setujui Laporan
             </button>
         </form>
+        @endif
     </div>
-    @endif
 </div>
 @empty
 <div style="text-align:center;padding:4rem 2rem;background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--border-radius);color:var(--text-muted);">
@@ -157,4 +178,20 @@
     <p style="font-size:0.85rem;">Laporan akan muncul setelah karyawan mengirimkan laporan lapangan.</p>
 </div>
 @endforelse
+
+{{-- Lightbox --}}
+<div id="lightboxSvOverlay" onclick="closeLightboxSv()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;align-items:center;justify-content:center;">
+    <img id="lightboxSvImg" src="" alt="Preview" style="max-width:90vw;max-height:90vh;border-radius:0.5rem;box-shadow:0 8px 40px rgba(0,0,0,0.5);">
+    <button onclick="closeLightboxSv()" style="position:absolute;top:1rem;right:1.25rem;background:rgba(255,255,255,0.15);border:none;color:white;font-size:1.5rem;cursor:pointer;border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;">&times;</button>
+</div>
+<style>#lightboxSvOverlay.active { display:flex !important; }</style>
+<script>
+function openLightboxSv(src) {
+    document.getElementById('lightboxSvImg').src = src;
+    document.getElementById('lightboxSvOverlay').classList.add('active');
+}
+function closeLightboxSv() {
+    document.getElementById('lightboxSvOverlay').classList.remove('active');
+}
+</script>
 @endsection

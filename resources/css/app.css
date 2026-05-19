@@ -393,6 +393,10 @@ ul {
     font-size: 1.1rem;
 }
 
+.panel-body {
+    padding: 1.5rem;
+}
+
 .panel-actions {
     display: flex;
     gap: 0.5rem;

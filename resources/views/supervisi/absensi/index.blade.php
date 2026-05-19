@@ -87,8 +87,8 @@
                 <button type="button" onclick="tandaiSemua('Hadir')" class="btn btn-outline" style="border-color:var(--success);color:var(--success);padding:0.35rem 0.85rem;font-size:0.82rem;">
                     <i class="fa-solid fa-check-double"></i> Semua Hadir
                 </button>
-                <button type="button" onclick="setJamSemua('09:00','17:00')" class="btn btn-outline" style="padding:0.35rem 0.85rem;font-size:0.82rem;">
-                    <i class="fa-regular fa-clock"></i> Set Jam Default
+                <button type="button" onclick="setJamSemua('09:00', 'now')" class="btn btn-outline" style="padding:0.35rem 0.85rem;font-size:0.82rem;">
+                    <i class="fa-regular fa-clock"></i> Set Waktu Sekarang
                 </button>
                 <button type="submit" class="btn btn-primary" style="padding:0.35rem 1rem;">
                     <i class="fa-solid fa-save"></i> Simpan Absensi
@@ -96,17 +96,15 @@
             </div>
         </div>
 
-        @if(session('success'))
-        <div style="padding:0.85rem 1.25rem;background:var(--success);color:white;border-bottom:1px solid var(--border-color);font-weight:500;">
-            <i class="fa-solid fa-check-circle"></i> {{ session('success') }}
-        </div>
-        @endif
+
 
         <div class="table-responsive">
             <table class="abs-table">
                 <thead>
                     <tr>
-                        <th style="width:36px;">#</th>
+                        <th style="width:36px;">
+                            <input type="checkbox" id="check-all" onclick="toggleCheckAll(this)" style="cursor:pointer;">
+                        </th>
                         <th>Nama Karyawan</th>
                         <th style="width:160px;">Status</th>
                         <th style="width:115px;">Jam Masuk</th>
@@ -120,12 +118,24 @@
                         $abs    = $absensis[$user->id] ?? null;
                         $status = $abs ? $abs->status : 'Hadir';
                         $masuk  = $abs && $abs->jam_masuk  ? substr($abs->jam_masuk,  0, 5) : '09:00';
-                        $keluar = $abs && $abs->jam_keluar ? substr($abs->jam_keluar, 0, 5) : '17:00';
-                        $lembur = $abs ? (int)$abs->jam_lembur : 0;
+                        $keluar = $abs && $abs->jam_keluar ? substr($abs->jam_keluar, 0, 5) : \Carbon\Carbon::now()->timezone('Asia/Jakarta')->format('H:i');
+                        $lembur = 0;
+                        if ($abs && $abs->jam_keluar && $status === 'Hadir') {
+                            $keluarC = \Carbon\Carbon::parse($abs->jam_keluar);
+                            $batas   = \Carbon\Carbon::parse('17:00:00');
+                            if ($keluarC->hour < 9) {
+                                $keluarC->addDay();
+                            }
+                            if ($keluarC->gt($batas)) {
+                                $lembur = (int) round($keluarC->diffInMinutes($batas) / 60);
+                            }
+                        }
                         $isAlpa = $status === 'Alpa';
                     @endphp
                     <tr>
-                        <td style="color:var(--text-muted);font-weight:600;font-size:0.82rem;">{{ $no + 1 }}</td>
+                        <td>
+                            <input type="checkbox" class="row-checkbox" value="{{ $user->id }}" id="check-{{ $user->id }}" style="cursor:pointer;" checked>
+                        </td>
                         <td>
                             <div style="display:flex;align-items:center;gap:0.75rem;">
                                 <div class="avatar" style="width:36px;height:36px;font-size:0.85rem;flex-shrink:0;background:var(--primary-100);color:var(--primary-700);">
@@ -183,7 +193,7 @@
 
         <div style="padding:1rem 1.25rem;display:flex;justify-content:flex-end;border-top:1px solid var(--border-color);">
             <button type="submit" class="btn btn-primary" style="padding:0.5rem 1.5rem;font-size:0.95rem;">
-                <i class="fa-solid fa-save"></i> Simpan Semua Absensi
+                <i class="fa-solid fa-save"></i> Simpan Absensi
             </button>
         </div>
     </form>
@@ -210,7 +220,11 @@ function setStatus(userId, status) {
         if (el) { el.textContent = '-'; el.style.color = 'var(--text-muted)'; }
     } else {
         if (!masuk.value)  masuk.value  = '09:00';
-        if (!keluar.value) keluar.value = '17:00';
+        if (!keluar.value) {
+            const now = new Date();
+            keluar.value = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+        }
+        hitungLembur(userId);
     }
 }
 
@@ -220,11 +234,15 @@ function hitungLembur(userId) {
     if (!keluar || !lemburEl) return;
 
     const [h, m]   = keluar.split(':').map(Number);
-    const totalMnt = h * 60 + m;
+    let totalMnt = h * 60 + m;
     const batasMnt = 17 * 60;
 
+    if (h < 9) {
+        totalMnt += 24 * 60;
+    }
+
     if (totalMnt > batasMnt) {
-        const jam = Math.floor((totalMnt - batasMnt) / 60);
+        const jam = Math.round((totalMnt - batasMnt) / 60);
         lemburEl.textContent = jam > 0 ? '+' + jam + ' jam' : '-';
         lemburEl.style.color = 'var(--warning)';
     } else {
@@ -233,20 +251,53 @@ function hitungLembur(userId) {
     }
 }
 
+function toggleCheckAll(source) {
+    document.querySelectorAll('.row-checkbox').forEach(cb => {
+        cb.checked = source.checked;
+    });
+}
+
+function getSelectedIds() {
+    const ids = [];
+    document.querySelectorAll('.row-checkbox:checked').forEach(cb => {
+        ids.push(cb.value);
+    });
+    return ids;
+}
+
 function tandaiSemua(status) {
-    document.querySelectorAll('[id^="status-"]').forEach(el => {
-        setStatus(parseInt(el.id.replace('status-', '')), status);
+    const ids = getSelectedIds();
+    if (ids.length === 0) {
+        alert("Pilih minimal satu karyawan.");
+        return;
+    }
+    ids.forEach(id => {
+        setStatus(id, status);
     });
 }
 
 function setJamSemua(jamMasuk, jamKeluar) {
-    document.querySelectorAll('[id^="masuk-"]').forEach(el => {
-        if (!el.disabled) el.value = jamMasuk;
-    });
-    document.querySelectorAll('[id^="keluar-"]').forEach(el => {
-        if (!el.disabled) {
-            el.value = jamKeluar;
-            hitungLembur(el.id.replace('keluar-', ''));
+    const ids = getSelectedIds();
+    if (ids.length === 0) {
+        alert("Pilih minimal satu karyawan.");
+        return;
+    }
+    if (jamKeluar === 'now') {
+        const now = new Date();
+        jamKeluar = new Intl.DateTimeFormat('en-GB', {
+            timeZone: 'Asia/Jakarta',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        }).format(now);
+    }
+    ids.forEach(id => {
+        const masuk = document.getElementById('masuk-' + id);
+        const keluar = document.getElementById('keluar-' + id);
+        if (masuk && !masuk.disabled) masuk.value = jamMasuk;
+        if (keluar && !keluar.disabled) {
+            keluar.value = jamKeluar;
+            hitungLembur(id);
         }
     });
 }
