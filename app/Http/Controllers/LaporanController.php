@@ -192,9 +192,9 @@ class LaporanController extends Controller
         $request->validate([
             'tanggal'          => 'required|date',
             'lokasi'           => 'required|string|max:255',
-            'foto'             => 'required|array|min:1|max:6',
+            'foto'             => 'required|array|min:1|max:8',
             'foto.*'           => 'image|max:5120',
-            'foto_deskripsi'   => 'nullable|array|max:6',
+            'foto_deskripsi'   => 'nullable|array|max:8',
             'foto_deskripsi.*' => 'nullable|string|max:255',
         ]);
 
@@ -254,9 +254,9 @@ class LaporanController extends Controller
         $request->validate([
             'tanggal'          => 'required|date',
             'lokasi'           => 'required|string|max:255',
-            'foto'             => 'nullable|array|max:6',
+            'foto'             => 'nullable|array|max:8',
             'foto.*'           => 'image|max:5120',
-            'foto_deskripsi'   => 'nullable|array|max:6',
+            'foto_deskripsi'   => 'nullable|array|max:8',
             'foto_deskripsi.*' => 'nullable|string|max:255',
             'removed_fotos'    => 'nullable|array',
             'removed_fotos.*'  => 'string',
@@ -281,7 +281,7 @@ class LaporanController extends Controller
             $currentDeskripsis = $newDeskripsis;
         }
 
-        $remainingSlots = 6 - count($currentFotos);
+        $remainingSlots = 8 - count($currentFotos);
         if ($request->hasFile('foto')) {
             $uploadedCount = 0;
             foreach ($request->file('foto') as $idx => $file) {

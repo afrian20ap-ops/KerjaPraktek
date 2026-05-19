@@ -28,7 +28,7 @@
     .badge-terkirim  { background:color-mix(in srgb,var(--warning) 15%,transparent); color:#b45309; border:1px solid #f59e0b; padding:0.25rem 0.75rem; border-radius:99px; font-size:0.75rem; font-weight:700; }
 
     /* Grid foto display */
-    .foto-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:0.75rem; margin-top:0.5rem; }
+    .foto-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:0.75rem; margin-top:0.5rem; }
     @media(max-width:700px) { .foto-grid { grid-template-columns:repeat(2,1fr); } }
     .foto-item { border-radius:0.5rem; border:1px solid var(--border-color); overflow:hidden; background:var(--bg-body); }
     .foto-item img { width:100%; aspect-ratio:4/3; object-fit:cover; display:block; cursor:pointer; transition:opacity 0.15s; }
@@ -49,7 +49,7 @@
     @media (max-width:600px) { .form-row { grid-template-columns:1fr; } }
 
     /* Slot foto di form */
-    .foto-slots { display:grid; grid-template-columns:repeat(3,1fr); gap:0.75rem; margin-top:0.5rem; }
+    .foto-slots { display:grid; grid-template-columns:repeat(4,1fr); gap:0.75rem; margin-top:0.5rem; }
     @media(max-width:600px){ .foto-slots { grid-template-columns:repeat(2,1fr); } }
     .foto-slot {
         border:2px dashed var(--border-color); border-radius:0.5rem;
@@ -161,10 +161,10 @@
             {{-- 6 SLOT FOTO --}}
             <div class="form-group">
                 <label><i class="fa-solid fa-camera"></i> Foto Dokumentasi <span style="color:var(--danger);">*</span>
-                    <span style="font-weight:400;color:var(--text-muted);font-size:0.78rem;">(maks 6 foto, tiap foto wajib diberi keterangan)</span>
+                    <span style="font-weight:400;color:var(--text-muted);font-size:0.78rem;">(maks 8 foto, tiap foto wajib diberi keterangan)</span>
                 </label>
                 <div class="foto-slots" id="fotoSlots">
-                    @for($i = 0; $i < 6; $i++)
+                    @for($i = 0; $i < 8; $i++)
                     <div class="foto-slot" id="slot{{ $i }}">
                         <div class="slot-num">Foto {{ $i+1 }}</div>
                         <div class="slot-preview-wrap" id="preview{{ $i }}">

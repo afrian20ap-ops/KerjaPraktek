@@ -28,7 +28,7 @@
     @media (max-width:600px) { .form-row { grid-template-columns:1fr; } }
 
     /* Grid foto edit */
-    .foto-edit-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:0.75rem; margin-top:0.5rem; }
+    .foto-edit-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:0.75rem; margin-top:0.5rem; }
     @media(max-width:600px){ .foto-edit-grid { grid-template-columns:repeat(2,1fr); } }
 
     .foto-edit-slot {
@@ -86,14 +86,14 @@
         <div class="form-group">
             <label>
                 <i class="fa-solid fa-camera"></i> Foto Dokumentasi
-                <span style="font-weight:400;color:var(--text-muted);font-size:0.8rem;">(maks 6 foto · klik X untuk hapus · tiap foto wajib ada keterangan)</span>
+                <span style="font-weight:400;color:var(--text-muted);font-size:0.8rem;">(maks 8 foto · klik X untuk hapus · tiap foto wajib ada keterangan)</span>
             </label>
 
             <div class="foto-edit-grid" id="fotoEditGrid">
                 @php
                     $existingFotos = $laporan->foto_paths ?? [];
                     $existingDesks = $laporan->foto_deskripsis ?? [];
-                    $totalSlots    = 6;
+                    $totalSlots    = 8;
                 @endphp
 
                 @for($i = 0; $i < $totalSlots; $i++)
@@ -263,7 +263,7 @@ document.getElementById('editForm').addEventListener('submit', function(e) {
     }
     // Cek semua slot aktif punya deskripsi
     let missing = false;
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 8; i++) {
         if (editSlotState[i] && editSlotState[i] !== 'empty') {
             const desc = document.getElementById('editDesc' + i);
             if (desc && !desc.value.trim()) { missing = true; break; }
