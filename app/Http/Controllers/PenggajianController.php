@@ -202,6 +202,77 @@ class PenggajianController extends Controller
         ])->with('success', 'Rincian Slip Gaji berhasil diperbarui!');
     }
 
+    public function saveSlip(Request $request)
+    {
+        $request->validate([
+            'user_id'   => 'required|exists:users,id',
+            'date_from' => 'required|date',
+            'date_to'   => 'required|date',
+        ]);
+
+        $userId       = $request->user_id;
+        $periodeMulai = $request->date_from;
+        $periodeAkhir = $request->date_to;
+
+        $grandGajiPokok  = 0;
+        $grandUangLembur = 0;
+        $grandUangMakan  = 0;
+        $grandKasbon     = 0;
+        $grandJamLembur  = 0;
+        $grandHari       = 0;
+
+        if ($request->has('absensi')) {
+            foreach ($request->absensi as $absId => $data) {
+                $abs = Absensi::find($absId);
+                if ($abs) {
+                    $abs->nominal_basic  = $data['basic']      ?? 0;
+                    $abs->nominal_lembur = $data['lembur']     ?? 0;
+                    $abs->nominal_makan  = $data['makan']      ?? 0;
+                    $abs->nominal_kasbon = $data['kasbon']     ?? 0;
+                    if (isset($data['jam_lembur'])) {
+                        $abs->jam_lembur = $data['jam_lembur'];
+                    }
+                    $abs->save();
+
+                    $grandGajiPokok  += $data['basic']  ?? 0;
+                    $grandUangLembur += $data['lembur'] ?? 0;
+                    $grandUangMakan  += $data['makan']  ?? 0;
+                    $grandKasbon     += $data['kasbon'] ?? 0;
+                    if (isset($data['jam_lembur'])) {
+                        $grandJamLembur += $data['jam_lembur'];
+                    }
+                    $grandHari += $abs->total_hari;
+                }
+            }
+        }
+
+        $totalGajiBersih = ($grandGajiPokok + $grandUangLembur + $grandUangMakan) - $grandKasbon;
+
+        // Buat atau update rekap penggajian
+        Penggajian::updateOrCreate(
+            [
+                'user_id'      => $userId,
+                'periode_mulai' => $periodeMulai,
+                'periode_akhir' => $periodeAkhir,
+            ],
+            [
+                'total_kehadiran_hari' => $grandHari,
+                'total_jam_lembur'     => $grandJamLembur,
+                'total_gaji_pokok'     => $grandGajiPokok,
+                'total_uang_lembur'    => $grandUangLembur,
+                'total_uang_makan'     => $grandUangMakan,
+                'kasbon'               => $grandKasbon,
+                'total_gaji_bersih'    => $totalGajiBersih,
+            ]
+        );
+
+        return redirect()->route('admin.gaji.slip', [
+            'user_id'   => $userId,
+            'date_from' => $periodeMulai,
+            'date_to'   => $periodeAkhir,
+        ])->with('success', 'Rincian Slip Gaji berhasil disimpan!');
+    }
+
     public function slipKaryawan(Request $request)
     {
         // Gunakan user_id dari session

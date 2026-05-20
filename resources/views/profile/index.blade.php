@@ -87,9 +87,11 @@
                 @else
                     <span id="avatarInitial">{{ strtoupper(substr(session('user_name', 'U'), 0, 1)) }}</span>
                 @endif
+                @if(session('user_role') == 'admin')
                 <label for="fotoInput" class="profile-avatar-overlay">
                     <i class="fa-solid fa-camera" style="color: white; font-size: 1.5rem;"></i>
                 </label>
+                @endif
             </div>
 
             <div style="flex: 1; padding-bottom: 0.5rem; z-index: 1;">
@@ -184,6 +186,7 @@
 </div>
 
 <!-- Form Edit Profil -->
+@if(session('user_role') == 'admin')
 <div class="panel" style="margin-top: 2rem;">
     <div class="panel-header">
         <span class="panel-title"><i class="fa-solid fa-pen" style="color: var(--primary-500); margin-right: 0.5rem;"></i> Edit Profil</span>
@@ -249,8 +252,9 @@
         </form>
     </div>
 </div>
+@endif
 
-{{-- ===== UBAH USERNAME & PASSWORD (Admin Only) ===== --}}
+{{-- ===== UBAH USERNAME & PASSWORD ===== --}}
 @if(session('user_role') == 'admin' && isset($user))
 <div class="panel" style="margin-top: 2rem;">
     <div class="panel-header">

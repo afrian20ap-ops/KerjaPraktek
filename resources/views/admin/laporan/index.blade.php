@@ -103,11 +103,20 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 {{-- DAFTAR LAPORAN --}}
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <div style="font-weight: 700; color: var(--text-primary); font-size: 1.1rem;">Daftar Laporan</div>
+        <button type="button" class="btn btn-outline" onclick="downloadSelected()" style="border-color:#16a34a; color:#16a34a; padding: 0.4rem 0.85rem; font-size: 0.85rem;">
+            <i class="fa-solid fa-file-excel"></i> Unduh Terpilih (Excel)
+        </button>
+    </div>
 @forelse($laporan as $lp)
 <div class="laporan-card">
     <div class="laporan-meta">
-        <div class="avatar" style="width:38px;height:38px;font-size:0.9rem;flex-shrink:0;background:var(--primary-100);color:var(--primary-700);">
-            {{ strtoupper(substr($lp->user->name,0,1)) }}
+        <div style="display:flex; align-items:center; gap:1rem;">
+            <input type="checkbox" class="laporan-checkbox" value="{{ $lp->id }}" style="width: 18px; height: 18px; cursor: pointer;">
+            <div class="avatar" style="width:38px;height:38px;font-size:0.9rem;flex-shrink:0;background:var(--primary-100);color:var(--primary-700);">
+                {{ strtoupper(substr($lp->user->name,0,1)) }}
+            </div>
         </div>
         <div>
             <div style="font-weight:700;color:var(--text-primary);">{{ $lp->user->name }}</div>
@@ -138,7 +147,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="foto-grid-admin">
             @foreach($lp->foto_paths as $idx => $fpath)
             <div class="foto-item-admin">
-                <img src="{{ $fpath }}" alt="Foto {{ $idx+1 }}" onclick="openLightboxAdmin('{{ $fpath }}')" />
+                <img src="{{ $fpath }}" alt="Foto {{ $idx+1 }}" loading="lazy" onclick="openLightboxAdmin('{{ $fpath }}')" />
                 <div class="foto-item-desc-admin">
                     @if(!empty($lp->foto_deskripsis[$idx]))
                         <i class="fa-solid fa-circle-info" style="color:var(--primary-500);margin-right:0.2rem;font-size:0.68rem;"></i>
@@ -196,6 +205,36 @@ function openLightboxAdmin(src) {
 }
 function closeLightboxAdmin() {
     document.getElementById('lightboxAdminOverlay').classList.remove('active');
+}
+
+function downloadSelected() {
+    const checkboxes = document.querySelectorAll('.laporan-checkbox:checked');
+    if (checkboxes.length === 0) {
+        showToast('Pilih minimal satu laporan untuk diunduh.', 'warning');
+        return;
+    }
+    
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '{{ route("admin.laporan.downloadBulk") }}';
+    
+    const csrf = document.createElement('input');
+    csrf.type = 'hidden';
+    csrf.name = '_token';
+    csrf.value = '{{ csrf_token() }}';
+    form.appendChild(csrf);
+    
+    checkboxes.forEach(cb => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'ids[]';
+        input.value = cb.value;
+        form.appendChild(input);
+    });
+    
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
 }
 </script>
 @endsection

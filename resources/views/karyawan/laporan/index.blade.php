@@ -114,7 +114,7 @@
             <div class="foto-grid">
                 @foreach($lp->foto_paths as $idx => $fpath)
                 <div class="foto-item">
-                    <img src="{{ $fpath }}" alt="Foto {{ $idx+1 }}"
+                    <img src="{{ $fpath }}" alt="Foto {{ $idx+1 }}" loading="lazy"
                          onclick="openLightbox('{{ $fpath }}')" />
                     <div class="foto-item-desc">
                         @if(!empty($lp->foto_deskripsis[$idx]))
@@ -158,13 +158,12 @@
                 </div>
             </div>
 
-            {{-- 6 SLOT FOTO --}}
             <div class="form-group">
                 <label><i class="fa-solid fa-camera"></i> Foto Dokumentasi <span style="color:var(--danger);">*</span>
-                    <span style="font-weight:400;color:var(--text-muted);font-size:0.78rem;">(maks 8 foto, tiap foto wajib diberi keterangan)</span>
+                    <span style="font-weight:400;color:var(--text-muted);font-size:0.78rem;">(Wajib 2 foto, disarankan rasio 1:1, tiap foto wajib diberi keterangan)</span>
                 </label>
                 <div class="foto-slots" id="fotoSlots">
-                    @for($i = 0; $i < 8; $i++)
+                    @for($i = 0; $i < 2; $i++)
                     <div class="foto-slot" id="slot{{ $i }}">
                         <div class="slot-num">Foto {{ $i+1 }}</div>
                         <div class="slot-preview-wrap" id="preview{{ $i }}">
@@ -218,6 +217,52 @@ function closeLightbox() {
     document.getElementById('lightboxOverlay').classList.remove('active');
 }
 
+// ── Image Compression Helper ─────────────────────────
+function compressImage(file, callback) {
+    if (file.size < 200 * 1024) {
+        callback(file);
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+            const max_size = 1024;
+            if (width > height) {
+                if (width > max_size) {
+                    height *= max_size / width;
+                    width = max_size;
+                }
+            } else {
+                if (height > max_size) {
+                    width *= max_size / height;
+                    height = max_size;
+                }
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            canvas.toBlob(function(blob) {
+                if (blob) {
+                    const compressedFile = new File([blob], file.name.substring(0, file.name.lastIndexOf('.')) + '.jpg', {
+                        type: 'image/jpeg',
+                        lastModified: Date.now()
+                    });
+                    callback(compressedFile);
+                } else {
+                    callback(file);
+                }
+            }, 'image/jpeg', 0.7);
+        };
+        img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
 // ── Slot foto logic ───────────────────────────────────
 // slotFiles[i] = File object (hanya slot yang ada fotonya)
 const slotFiles = {};
@@ -225,7 +270,6 @@ const slotFiles = {};
 function handleSlotFile(idx, input) {
     if (!input.files || !input.files[0]) return;
     const file = input.files[0];
-    slotFiles[idx] = file;
 
     const wrap = document.getElementById('preview' + idx);
     const icon = document.getElementById('emptyIcon' + idx);
@@ -236,26 +280,47 @@ function handleSlotFile(idx, input) {
     const oldBtn = wrap.querySelector('.slot-remove');
     if (oldBtn) oldBtn.remove();
 
-    const reader = new FileReader();
-    reader.onload = function(ev) {
-        if (icon) icon.style.display = 'none';
+    // Tampilkan loader kompresi
+    const loader = document.createElement('div');
+    loader.className = 'slot-compress-loader';
+    loader.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Kompresi...';
+    loader.setAttribute('style', 'font-size:0.75rem; color:var(--primary-500); margin-top:0.5rem;');
+    wrap.appendChild(loader);
 
-        const img = document.createElement('img');
-        img.className = 'slot-preview';
-        img.src = ev.target.result;
-        wrap.appendChild(img);
+    compressImage(file, function(compressedFile) {
+        loader.remove();
+        slotFiles[idx] = compressedFile;
 
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'slot-remove';
-        btn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
-        btn.onclick = function(e) { e.stopPropagation(); removeSlot(idx); };
-        wrap.appendChild(btn);
+        // Assign back to file input using DataTransfer
+        try {
+            const dt = new DataTransfer();
+            dt.items.add(compressedFile);
+            input.files = dt.files;
+        } catch(e) {
+            console.error('DataTransfer not supported', e);
+        }
 
-        document.getElementById('slot' + idx).style.borderStyle = 'solid';
-        document.getElementById('slot' + idx).style.borderColor = 'var(--primary-400)';
-    };
-    reader.readAsDataURL(file);
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            if (icon) icon.style.display = 'none';
+
+            const img = document.createElement('img');
+            img.className = 'slot-preview';
+            img.src = ev.target.result;
+            wrap.appendChild(img);
+
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'slot-remove';
+            btn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+            btn.onclick = function(e) { e.stopPropagation(); removeSlot(idx); };
+            wrap.appendChild(btn);
+
+            document.getElementById('slot' + idx).style.borderStyle = 'solid';
+            document.getElementById('slot' + idx).style.borderColor = 'var(--primary-400)';
+        };
+        reader.readAsDataURL(compressedFile);
+    });
 }
 
 function removeSlot(idx) {
@@ -279,9 +344,9 @@ document.getElementById('laporanForm').addEventListener('submit', function(e) {
 
     const filledSlots = Object.keys(slotFiles).map(Number);
 
-    // Validasi: minimal 1 foto
-    if (filledSlots.length === 0) {
-        showToast('Minimal harus ada 1 foto!', 'danger');
+    // Validasi: wajib 2 foto
+    if (filledSlots.length !== 2) {
+        showToast('Wajib mengupload tepat 2 foto!', 'danger');
         return;
     }
 

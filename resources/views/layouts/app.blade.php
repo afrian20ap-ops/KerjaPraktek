@@ -35,8 +35,12 @@
             </nav>
 
             <div class="user-profile-widget">
-                <div class="avatar">
-                    {{ strtoupper(substr(session('user_name', 'U'), 0, 1)) }}
+                <div class="avatar" style="overflow: hidden;">
+                    @if(session('user_foto'))
+                        <img src="{{ asset('storage/' . session('user_foto')) }}" alt="Foto Profil" style="width: 100%; height: 100%; object-fit: cover;">
+                    @else
+                        {{ strtoupper(substr(session('user_name', 'U'), 0, 1)) }}
+                    @endif
                 </div>
                 <div class="user-info">
                     <div class="user-name">{{ session('user_name', 'Pengguna') }}</div>
@@ -63,13 +67,21 @@
 
                     <!-- User Profile Dropdown -->
                     <div class="dropdown" style="position: relative;">
-                        <div class="avatar" style="cursor:pointer;font-size:0.85rem;" title="{{ session('user_name', 'Pengguna') }}" onclick="toggleDropdown('profileMenu', event)">
-                            {{ strtoupper(substr(session('user_name', 'U'), 0, 1)) }}
+                        <div class="avatar" style="cursor:pointer;font-size:0.85rem;overflow:hidden;" title="{{ session('user_name', 'Pengguna') }}" onclick="toggleDropdown('profileMenu', event)">
+                            @if(session('user_foto'))
+                                <img src="{{ asset('storage/' . session('user_foto')) }}" alt="Foto Profil" style="width: 100%; height: 100%; object-fit: cover;">
+                            @else
+                                {{ strtoupper(substr(session('user_name', 'U'), 0, 1)) }}
+                            @endif
                         </div>
                         <div class="dropdown-menu profile-menu" id="profileMenu">
                             <div class="dropdown-header profile-header" style="display: flex; align-items: center; justify-content: flex-start; gap: 1rem; padding: 1rem; border-bottom: 1px solid var(--border-color);">
-                                <div class="avatar" style="width: 48px; height: 48px; font-size: 1.25rem; flex-shrink: 0;">
-                                    {{ strtoupper(substr(session('user_name', 'U'), 0, 1)) }}
+                                <div class="avatar" style="width: 48px; height: 48px; font-size: 1.25rem; flex-shrink: 0; overflow: hidden;">
+                                    @if(session('user_foto'))
+                                        <img src="{{ asset('storage/' . session('user_foto')) }}" alt="Foto Profil" style="width: 100%; height: 100%; object-fit: cover;">
+                                    @else
+                                        {{ strtoupper(substr(session('user_name', 'U'), 0, 1)) }}
+                                    @endif
                                 </div>
                                 <div class="profile-info" style="text-align: left;">
                                     <div class="user-name" style="font-size:1rem; font-weight:700; color:var(--text-primary);">{{ session('user_name', 'Pengguna') }}</div>

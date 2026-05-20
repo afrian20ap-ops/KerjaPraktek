@@ -133,8 +133,12 @@
         </div>
 
         {{-- ===== FORM EDIT RINCIAN PER HARI ===== --}}
-        <form action="{{ $penggajian ? route('admin.gaji.slip.update', $penggajian->id) : '#' }}" method="POST">
+        <form action="{{ route('admin.gaji.slip.save') }}" method="POST">
             @csrf
+            <input type="hidden" name="user_id" value="{{ $userId }}">
+            <input type="hidden" name="date_from" value="{{ $periodeMulai }}">
+            <input type="hidden" name="date_to" value="{{ $periodeAkhir }}">
+            <input type="hidden" name="penggajian_id" value="{{ $penggajian?->id ?? '' }}">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;" class="no-print">
                 <span style="font-size:0.85rem;color:var(--text-secondary);">
                     <i class="fa-solid fa-circle-info" style="color:var(--primary-500);"></i>
@@ -406,6 +410,9 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     });
+
+    // Hitung total saat halaman pertama kali dimuat
+    calculateGrandTotals();
 });
 </script>
 <script>

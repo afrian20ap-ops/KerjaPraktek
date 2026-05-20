@@ -82,18 +82,17 @@
             </div>
         </div>
 
-        {{-- 6 SLOT FOTO --}}
         <div class="form-group">
             <label>
                 <i class="fa-solid fa-camera"></i> Foto Dokumentasi
-                <span style="font-weight:400;color:var(--text-muted);font-size:0.8rem;">(maks 8 foto · klik X untuk hapus · tiap foto wajib ada keterangan)</span>
+                <span style="font-weight:400;color:var(--text-muted);font-size:0.8rem;">(Wajib 2 foto · disarankan rasio 1:1 · klik X untuk hapus · tiap foto wajib ada keterangan)</span>
             </label>
 
             <div class="foto-edit-grid" id="fotoEditGrid">
                 @php
                     $existingFotos = $laporan->foto_paths ?? [];
                     $existingDesks = $laporan->foto_deskripsis ?? [];
-                    $totalSlots    = 8;
+                    $totalSlots    = 2;
                 @endphp
 
                 @for($i = 0; $i < $totalSlots; $i++)
@@ -106,7 +105,7 @@
                     <div class="slot-num">Foto {{ $i+1 }}</div>
                     <div class="slot-preview-wrap" id="editPreview{{ $i }}">
                         @if($isExisting)
-                            <img src="{{ $fpath }}" alt="Foto {{ $i+1 }}" class="slot-preview" id="editImg{{ $i }}">
+                            <img src="{{ $fpath }}" alt="Foto {{ $i+1 }}" class="slot-preview" id="editImg{{ $i }}" loading="lazy">
                             <button type="button" class="slot-remove" onclick="removeEditSlot({{ $i }})">
                                 <i class="fa-solid fa-xmark"></i>
                             </button>
@@ -202,38 +201,104 @@ function removeEditSlot(idx) {
     editSlotState[idx] = 'empty';
 }
 
+// ── Image Compression Helper ─────────────────────────
+function compressImage(file, callback) {
+    if (file.size < 200 * 1024) {
+        callback(file);
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+            const max_size = 1024;
+            if (width > height) {
+                if (width > max_size) {
+                    height *= max_size / width;
+                    width = max_size;
+                }
+            } else {
+                if (height > max_size) {
+                    width *= max_size / height;
+                    height = max_size;
+                }
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            canvas.toBlob(function(blob) {
+                if (blob) {
+                    const compressedFile = new File([blob], file.name.substring(0, file.name.lastIndexOf('.')) + '.jpg', {
+                        type: 'image/jpeg',
+                        lastModified: Date.now()
+                    });
+                    callback(compressedFile);
+                } else {
+                    callback(file);
+                }
+            }, 'image/jpeg', 0.7);
+        };
+        img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
 function handleEditSlot(idx, input) {
     if (!input.files || !input.files[0]) return;
     const file = input.files[0];
     const wrap = document.getElementById('editPreview' + idx);
     const slot = document.getElementById('editSlot' + idx);
 
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        wrap.innerHTML = '';
+    // Tampilkan loader kompresi
+    const loader = document.createElement('div');
+    loader.className = 'slot-compress-loader';
+    loader.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Kompresi...';
+    loader.setAttribute('style', 'font-size:0.75rem; color:var(--primary-500); margin-top:0.5rem;');
+    wrap.appendChild(loader);
 
-        const img = document.createElement('img');
-        img.className = 'slot-preview';
-        img.src = e.target.result;
-        wrap.appendChild(img);
+    compressImage(file, function(compressedFile) {
+        loader.remove();
 
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'slot-remove';
-        btn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
-        btn.onclick = function() { removeNewSlot(idx); };
-        wrap.appendChild(btn);
+        // Assign back to file input using DataTransfer
+        try {
+            const dt = new DataTransfer();
+            dt.items.add(compressedFile);
+            input.files = dt.files;
+        } catch(e) {
+            console.error('DataTransfer not supported', e);
+        }
 
-        // Sembunyikan tombol upload
-        document.getElementById('editUploadBtn' + idx).style.display = 'none';
-        slot.classList.add('has-foto');
-        editSlotState[idx] = 'new';
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            wrap.innerHTML = '';
 
-        // Wajibkan deskripsi
-        const descEl = document.getElementById('editDesc' + idx);
-        if (descEl) { descEl.required = true; descEl.name = 'foto_deskripsi[]'; }
-    };
-    reader.readAsDataURL(file);
+            const img = document.createElement('img');
+            img.className = 'slot-preview';
+            img.src = e.target.result;
+            wrap.appendChild(img);
+
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'slot-remove';
+            btn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+            btn.onclick = function() { removeNewSlot(idx); };
+            wrap.appendChild(btn);
+
+            // Sembunyikan tombol upload
+            document.getElementById('editUploadBtn' + idx).style.display = 'none';
+            slot.classList.add('has-foto');
+            editSlotState[idx] = 'new';
+
+            // Wajibkan deskripsi
+            const descEl = document.getElementById('editDesc' + idx);
+            if (descEl) { descEl.required = true; descEl.name = 'foto_deskripsi[]'; }
+        };
+        reader.readAsDataURL(compressedFile);
+    });
 }
 
 function removeNewSlot(idx) {
@@ -256,14 +321,14 @@ function removeNewSlot(idx) {
 // Validasi sebelum submit
 document.getElementById('editForm').addEventListener('submit', function(e) {
     const totalFoto = Object.values(editSlotState).filter(s => s !== 'empty').length;
-    if (totalFoto === 0) {
+    if (totalFoto !== 2) {
         e.preventDefault();
-        if (typeof showToast === 'function') showToast('Minimal harus ada 1 foto!', 'danger');
+        if (typeof showToast === 'function') showToast('Wajib mengupload tepat 2 foto!', 'danger');
         return;
     }
     // Cek semua slot aktif punya deskripsi
     let missing = false;
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 2; i++) {
         if (editSlotState[i] && editSlotState[i] !== 'empty') {
             const desc = document.getElementById('editDesc' + i);
             if (desc && !desc.value.trim()) { missing = true; break; }

@@ -34,6 +34,7 @@ Route::post('/login', function (Request $request) {
     $request->session()->put('user_id',   $user->id);
     $request->session()->put('user_role', $user->role);
     $request->session()->put('user_name', $user->name);
+    $request->session()->put('user_foto', $user->foto);
 
     // Redirect sesuai role
     return match ($user->role) {
@@ -49,10 +50,9 @@ Route::post('/logout', function (Request $request) {
 })->name('logout');
 
 // Profile & Settings
-Route::get('/profile', function () {
-    $user = \App\Models\User::find(session('user_id'));
-    return view('profile.index', compact('user'));
-})->name('profile');
+Route::get('/profile', [App\Http\Controllers\ProfileController::class, 'index'])->name('profile');
+Route::post('/profile/update', [App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
+Route::post('/profile/credentials', [App\Http\Controllers\ProfileController::class, 'credentials'])->name('profile.credentials');
 
 Route::get('/settings', function () {
     return redirect()->route('profile');
@@ -110,6 +110,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/absensi', [App\Http\Controllers\AbsensiController::class, 'indexAdmin'])->name('absensi');
 
     Route::get('/gaji/slip', [App\Http\Controllers\PenggajianController::class, 'slip'])->name('gaji.slip');
+    Route::post('/gaji/slip/save', [App\Http\Controllers\PenggajianController::class, 'saveSlip'])->name('gaji.slip.save');
     Route::post('/gaji/slip/{id}', [App\Http\Controllers\PenggajianController::class, 'updateSlip'])->name('gaji.slip.update');
 
     Route::get('/gaji/rekap', function() {
@@ -121,8 +122,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/laporan', [App\Http\Controllers\LaporanController::class, 'indexAdmin'])->name('laporan');
     Route::post('/laporan/{id}/approve', [App\Http\Controllers\LaporanController::class, 'approveAdmin'])->name('laporan.approve');
 
-    Route::get('/laporan/{id}/download', [App\Http\Controllers\LaporanController::class, 'downloadXlsx'])
-    ->name('laporan.download');
+    Route::get('/laporan/{id}/download', [App\Http\Controllers\LaporanController::class, 'downloadXlsx'])->name('laporan.download');
+    Route::post('/laporan/download-bulk', [App\Http\Controllers\LaporanController::class, 'downloadBulkXlsx'])->name('laporan.downloadBulk');
 });
 
 
@@ -167,10 +168,9 @@ Route::prefix('supervisi')->name('supervisi.')->group(function () {
     Route::get('/laporan', [App\Http\Controllers\LaporanController::class, 'indexSupervisi'])->name('laporan');
     Route::post('/laporan/{id}/approve', [App\Http\Controllers\LaporanController::class, 'approveSupervisi'])->name('laporan.approve');
 
-    Route::get('/laporan/{id}/download', [App\Http\Controllers\LaporanController::class, 'downloadXlsx'])
-    ->name('laporan.download');
+    Route::get('/laporan/{id}/download', [App\Http\Controllers\LaporanController::class, 'downloadXlsx'])->name('laporan.download');
+    Route::post('/laporan/download-bulk', [App\Http\Controllers\LaporanController::class, 'downloadBulkXlsx'])->name('laporan.downloadBulk');
 });
-
 
 // ==========================================
 // ROUTES KARYAWAN
