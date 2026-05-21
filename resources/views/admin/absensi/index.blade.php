@@ -1,6 +1,6 @@
 @extends('layouts.app')
-@section('title', 'Data Absensi')
-@section('page-title', 'Data Absensi Karyawan')
+@section('title', 'Riwayat Absen')
+@section('page-title', 'Riwayat Absen Karyawan')
 
 @section('sidebar-nav')
 <span class="nav-label">Menu Utama</span>
@@ -8,7 +8,7 @@
 <a href="{{ route('admin.karyawan') }}" class="nav-item"><i class="fa-solid fa-users"></i> Data Karyawan</a>
 
 <span class="nav-label" style="margin-top:1rem;">Absensi</span>
-<a href="{{ route('admin.absensi') }}" class="nav-item active"><i class="fa-solid fa-calendar-check"></i> Data Absensi</a>
+<a href="{{ route('admin.absensi') }}" class="nav-item active"><i class="fa-solid fa-calendar-check"></i> Riwayat Absen</a>
 
 <span class="nav-label" style="margin-top:1rem;">Penggajian</span>
 <a href="{{ route('admin.gaji.slip') }}" class="nav-item"><i class="fa-solid fa-file-invoice-dollar"></i> Slip Gaji</a>
@@ -19,11 +19,20 @@
 @section('content')
 <div class="panel">
     <div class="panel-header" style="flex-wrap: wrap; gap: 1rem;">
-        <span class="panel-title">Rekapitulasi Absensi</span>
+        <span class="panel-title">Riwayat Absensi</span>
         <div class="panel-actions" style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
             <form method="GET" action="{{ route('admin.absensi') }}" id="filterForm" style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap;">
+                
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <label style="font-size: 0.85rem; font-weight: 500; color: var(--text-secondary); white-space:nowrap;">Karyawan:</label>
+                    <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); white-space:nowrap;">Tampilan:</label>
+                    <select name="view_type" id="view_type" class="form-control" style="padding:0.35rem 0.75rem;font-size:0.85rem; width:150px;">
+                        <option value="keseluruhan" {{ $viewType === 'keseluruhan' ? 'selected' : '' }}>Semua Karyawan</option>
+                        <option value="individu" {{ $viewType === 'individu' ? 'selected' : '' }}>Per Karyawan</option>
+                    </select>
+                </div>
+
+                <div id="employeeGroup" style="display: flex; align-items: center; gap: 0.5rem;">
+                    <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); white-space:nowrap;">Karyawan:</label>
                     <input type="text" id="searchInput" list="karyawanList" class="form-control" placeholder="Ketik nama atau NIK..." style="padding:0.35rem 0.75rem;font-size:0.85rem; width:220px;" value="{{ isset($karyawanTerpilih) ? strtoupper($karyawanTerpilih->name) . ' (' . ($karyawanTerpilih->nik ?? '-') . ')' : '' }}">
                     <datalist id="karyawanList">
                         @foreach($semuaKaryawan as $karyawan)
@@ -32,10 +41,37 @@
                     </datalist>
                     <input type="hidden" name="user_id" id="hiddenUserId" value="{{ isset($karyawanTerpilih) ? $karyawanTerpilih->id : '' }}">
                 </div>
+
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <label style="font-size: 0.85rem; font-weight: 500; color: var(--text-secondary); white-space:nowrap;">Bulan & Tahun:</label>
-                    <input type="month" id="bulan_tahun" name="bulan_tahun" class="form-control" style="padding:0.35rem 0.75rem;font-size:0.85rem; width:160px;" value="{{ request('bulan_tahun', date('Y-m')) }}" onchange="this.form.submit()">
+                    <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); white-space:nowrap;">Periode:</label>
+                    <select name="periode_type" id="periode_type" class="form-control" style="padding:0.35rem 0.75rem;font-size:0.85rem; width:150px;">
+                        <option value="bulanan" {{ $periodeType === 'bulanan' ? 'selected' : '' }}>Per Bulan</option>
+                        <option value="range" {{ $periodeType === 'range' ? 'selected' : '' }}>Rentang Tanggal</option>
+                    </select>
                 </div>
+
+                <div id="bulananGroup" style="display: flex; align-items: center; gap: 0.5rem;">
+                    <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); white-space:nowrap;">Bulan & Tahun:</label>
+                    <input type="month" id="bulan_tahun" name="bulan_tahun" class="form-control" style="padding:0.35rem 0.75rem;font-size:0.85rem; width:160px;" value="{{ $bulanTahun }}">
+                </div>
+
+                <div id="rangeGroup" style="display: flex; align-items: center; gap: 0.5rem;">
+                    <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); white-space:nowrap;">Dari:</label>
+                    <input type="date" name="dari" id="dari" class="form-control" style="padding:0.35rem 0.75rem;font-size:0.85rem; width:145px;" value="{{ $dari }}">
+                    <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); white-space:nowrap;">Sampai:</label>
+                    <input type="date" name="sampai" id="sampai" class="form-control" style="padding:0.35rem 0.75rem;font-size:0.85rem; width:145px;" value="{{ $sampai }}">
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); white-space:nowrap;">Urutkan:</label>
+                    <select name="sort_by" id="sort_by" class="form-control" style="padding:0.35rem 0.75rem;font-size:0.85rem; width:180px;">
+                        <option value="tanggal_desc" {{ $sortBy === 'tanggal_desc' ? 'selected' : '' }}>Hari/Tanggal (Terbaru)</option>
+                        <option value="tanggal_asc" {{ $sortBy === 'tanggal_asc' ? 'selected' : '' }}>Hari/Tanggal (Terlama)</option>
+                        <option value="nama_asc" id="sortOptNamaAsc" {{ $sortBy === 'nama_asc' ? 'selected' : '' }}>Nama Karyawan (A-Z)</option>
+                        <option value="nama_desc" id="sortOptNamaDesc" {{ $sortBy === 'nama_desc' ? 'selected' : '' }}>Nama Karyawan (Z-A)</option>
+                    </select>
+                </div>
+
                 <button type="submit" class="btn btn-primary"><i class="fa-solid fa-filter"></i> Tampilkan</button>
                 <button type="button" class="btn btn-outline" style="border-color: var(--primary-500); color: var(--primary-500);" onclick="window.print()"><i class="fa-solid fa-print"></i> Cetak PDF</button>
             </form>
@@ -58,9 +94,13 @@
         .time-input:focus { background: var(--surface); border-color: var(--primary-500); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-500) 15%, transparent); }
         
         @media print {
+            @page {
+                size: auto;
+                margin: 0mm !important;
+            }
             body * { visibility: hidden; }
             .panel, .panel * { visibility: visible; }
-            .panel { position: absolute; left: 0; top: 0; width: 100%; border: none; box-shadow: none; }
+            .panel { position: absolute; left: 15mm; top: 15mm; width: calc(100% - 30mm); border: none; box-shadow: none; }
             .panel-actions { display: none; }
             .table-absensi th, .table-absensi td { border: 1px solid #000; color: #000; padding: 0.25rem; font-size: 10px; }
             .table-absensi td.name-col, .table-absensi th.name-col, .table-absensi th.no-col, .table-absensi td.no-col { position: static; box-shadow: none; }
@@ -73,6 +113,9 @@
             <thead>
                 <tr>
                     <th>NO.</th>
+                    @if($viewType === 'keseluruhan')
+                        <th>NAMA KARYAWAN</th>
+                    @endif
                     <th>TANGGAL</th>
                     <th>JAM MASUK</th>
                     <th>JAM KELUAR</th>
@@ -84,6 +127,14 @@
                 @forelse($absensis as $index => $abs)
                 <tr>
                     <td>{{ $index + 1 }}</td>
+                    @if($viewType === 'keseluruhan')
+                        <td style="text-align: left; font-weight: 600;">
+                            {{ $abs->user->name ?? '-' }}
+                            <div style="font-size: 0.75rem; color: var(--text-muted); font-family: monospace;">
+                                NIK: {{ $abs->user->nik ?? '-' }}
+                            </div>
+                        </td>
+                    @endif
                     <td>{{ \Carbon\Carbon::parse($abs->tanggal)->format('d-M-Y') }}</td>
                     <td>{{ $abs->jam_masuk ? \Carbon\Carbon::parse($abs->jam_masuk)->format('H:i') : '-' }}</td>
                     <td>{{ $abs->jam_keluar ? \Carbon\Carbon::parse($abs->jam_keluar)->format('H:i') : '-' }}</td>
@@ -115,10 +166,14 @@
                 </tr>
                 @empty
                 <tr>
-                    @if(isset($karyawanTerpilih))
-                        <td colspan="6" style="text-align:center; padding: 2rem; color:var(--text-muted);">Tidak ada data absensi untuk <strong>{{ $karyawanTerpilih->name }}</strong> pada periode yang dipilih.</td>
+                    @if($viewType === 'individu')
+                        @if(isset($karyawanTerpilih))
+                            <td colspan="6" style="text-align:center; padding: 2rem; color:var(--text-muted);">Tidak ada data absensi untuk <strong>{{ $karyawanTerpilih->name }}</strong> pada periode yang dipilih.</td>
+                        @else
+                            <td colspan="6" style="text-align:center; padding: 2rem; color:var(--text-muted);">Silakan pilih karyawan terlebih dahulu untuk melihat rekapitulasi absensi.</td>
+                        @endif
                     @else
-                        <td colspan="6" style="text-align:center; padding: 2rem; color:var(--text-muted);">Silakan pilih karyawan terlebih dahulu untuk melihat rekapitulasi absensi.</td>
+                        <td colspan="7" style="text-align:center; padding: 2rem; color:var(--text-muted);">Tidak ada data absensi keseluruhan untuk periode yang dipilih.</td>
                     @endif
                 </tr>
                 @endforelse
@@ -131,33 +186,62 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // Search handler for employee datalist
+    const viewTypeSelect = document.getElementById('view_type');
+    const employeeGroup = document.getElementById('employeeGroup');
     const searchInput = document.getElementById('searchInput');
     const hiddenUserId = document.getElementById('hiddenUserId');
+
+    const periodeTypeSelect = document.getElementById('periode_type');
+    const bulananGroup = document.getElementById('bulananGroup');
+    const rangeGroup = document.getElementById('rangeGroup');
+    
     const form = document.getElementById('filterForm');
 
-    function hitungLembur(userId) {
-        const keluar   = document.getElementById('keluar-' + userId)?.value;
-        const lemburEl = document.getElementById('lembur-' + userId);
-        if (!keluar || !lemburEl) return;
+    const sortOptNamaAsc = document.getElementById('sortOptNamaAsc');
+    const sortOptNamaDesc = document.getElementById('sortOptNamaDesc');
+    const sortBySelect = document.getElementById('sort_by');
 
-        const [h, m]   = keluar.split(':').map(Number);
-        let totalMnt = h * 60 + m;
-        const batasMnt = 17 * 60;
-
-        if (h < 9) {
-            totalMnt += 24 * 60;
-        }
-
-        if (totalMnt > batasMnt) {
-            const jam = Math.round((totalMnt - batasMnt) / 60);
-            lemburEl.textContent = jam > 0 ? '+' + jam + ' jam' : '-';
-            lemburEl.style.color = 'var(--warning)';
+    function toggleViewType() {
+        if (viewTypeSelect.value === 'individu') {
+            employeeGroup.style.display = 'flex';
+            searchInput.required = true;
+            
+            // Sembunyikan opsi urutkan berdasarkan nama pada mode individu
+            if (sortOptNamaAsc) sortOptNamaAsc.style.display = 'none';
+            if (sortOptNamaDesc) sortOptNamaDesc.style.display = 'none';
+            
+            // Reset ke default jika sebelumnya mengurutkan berdasarkan nama
+            if (sortBySelect && (sortBySelect.value === 'nama_asc' || sortBySelect.value === 'nama_desc')) {
+                sortBySelect.value = 'tanggal_desc';
+            }
         } else {
-            lemburEl.textContent = '-';
-            lemburEl.style.color = 'var(--text-muted)';
+            employeeGroup.style.display = 'none';
+            searchInput.required = false;
+            searchInput.value = '';
+            hiddenUserId.value = '';
+            
+            // Tampilkan kembali opsi urutkan berdasarkan nama pada mode keseluruhan
+            if (sortOptNamaAsc) sortOptNamaAsc.style.display = 'block';
+            if (sortOptNamaDesc) sortOptNamaDesc.style.display = 'block';
         }
     }
+
+    function togglePeriodeType() {
+        if (periodeTypeSelect.value === 'range') {
+            rangeGroup.style.display = 'flex';
+            bulananGroup.style.display = 'none';
+        } else {
+            rangeGroup.style.display = 'none';
+            bulananGroup.style.display = 'flex';
+        }
+    }
+
+    viewTypeSelect.addEventListener('change', toggleViewType);
+    periodeTypeSelect.addEventListener('change', togglePeriodeType);
+
+    // Initial state
+    toggleViewType();
+    togglePeriodeType();
 
     function findMatch() {
         if (!searchInput.value) return null;
@@ -195,11 +279,12 @@ document.addEventListener('DOMContentLoaded', function () {
             const foundId = findMatch();
             if (foundId) {
                 hiddenUserId.value = foundId;
-                form.submit();
             }
         });
+    }
 
-        form.addEventListener('submit', function(e) {
+    form.addEventListener('submit', function(e) {
+        if (viewTypeSelect.value === 'individu') {
             if (searchInput.value) {
                 const foundId = findMatch();
                 if (foundId) {
@@ -212,8 +297,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 e.preventDefault();
                 alert("Silakan pilih karyawan terlebih dahulu.");
             }
-        });
-    }
+        }
+    });
 
 });
 </script>

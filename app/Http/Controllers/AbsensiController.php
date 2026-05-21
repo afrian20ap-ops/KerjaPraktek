@@ -11,28 +11,69 @@ class AbsensiController extends Controller
 {
     public function indexAdmin(Request $request)
     {
-        $bulanTahun = $request->query('bulan_tahun', Carbon::now()->format('Y-m'));
-        $tanggalObj = Carbon::createFromFormat('Y-m', $bulanTahun);
-        $dari   = $tanggalObj->copy()->startOfMonth()->format('Y-m-d');
-        $sampai = $tanggalObj->copy()->endOfMonth()->format('Y-m-d');
-        
+        $viewType = $request->query('view_type', 'keseluruhan');
         $userId = $request->query('user_id');
 
-        $semuaKaryawan = User::where('role', 'karyawan')->orderBy('name')->get();
-
-        if ($userId) {
-            $absensis = Absensi::with('user')
-                ->where('user_id', $userId)
-                ->whereBetween('tanggal', [$dari, $sampai])
-                ->orderBy('tanggal', 'desc')
-                ->get();
-            $karyawanTerpilih = User::find($userId);
+        $periodeType = $request->query('periode_type', 'bulanan');
+        $bulanTahun = $request->query('bulan_tahun', Carbon::now()->format('Y-m'));
+        
+        if ($periodeType === 'range') {
+            $dari = $request->query('dari', Carbon::now()->startOfMonth()->format('Y-m-d'));
+            $sampai = $request->query('sampai', Carbon::now()->format('Y-m-d'));
         } else {
-            $absensis = collect();
-            $karyawanTerpilih = null;
+            // Mode bulanan
+            try {
+                $tanggalObj = Carbon::createFromFormat('Y-m', $bulanTahun);
+            } catch (\Exception $e) {
+                $bulanTahun = Carbon::now()->format('Y-m');
+                $tanggalObj = Carbon::createFromFormat('Y-m', $bulanTahun);
+            }
+            $dari = $tanggalObj->copy()->startOfMonth()->format('Y-m-d');
+            $sampai = $tanggalObj->copy()->endOfMonth()->format('Y-m-d');
         }
 
-        return view('admin.absensi.index', compact('absensis', 'dari', 'sampai', 'semuaKaryawan', 'karyawanTerpilih', 'bulanTahun'));
+        $semuaKaryawan = User::where('role', 'karyawan')->orderBy('name')->get();
+        $karyawanTerpilih = null;
+
+        $sortBy = $request->query('sort_by', 'tanggal_desc');
+
+        if ($viewType === 'individu' && $userId) {
+            $query = Absensi::with('user')
+                ->where('user_id', $userId)
+                ->whereBetween('tanggal', [$dari, $sampai]);
+
+            if ($sortBy === 'tanggal_asc') {
+                $query->orderBy('tanggal', 'asc');
+            } else {
+                $query->orderBy('tanggal', 'desc');
+            }
+
+            $absensis = $query->get();
+            $karyawanTerpilih = User::find($userId);
+        } else {
+            // Keseluruhan
+            $query = Absensi::join('users', 'users.id', '=', 'absensi.user_id')
+                ->select('absensi.*')
+                ->whereBetween('absensi.tanggal', [$dari, $sampai])
+                ->with('user');
+
+            if ($sortBy === 'nama_asc') {
+                $query->orderBy('users.name', 'asc')->orderBy('absensi.tanggal', 'desc');
+            } elseif ($sortBy === 'nama_desc') {
+                $query->orderBy('users.name', 'desc')->orderBy('absensi.tanggal', 'desc');
+            } elseif ($sortBy === 'tanggal_asc') {
+                $query->orderBy('absensi.tanggal', 'asc')->orderBy('users.name', 'asc');
+            } else {
+                $query->orderBy('absensi.tanggal', 'desc')->orderBy('users.name', 'asc');
+            }
+
+            $absensis = $query->get();
+        }
+
+        return view('admin.absensi.index', compact(
+            'absensis', 'dari', 'sampai', 'semuaKaryawan', 
+            'karyawanTerpilih', 'bulanTahun', 'viewType', 'periodeType', 'sortBy'
+        ));
     }
 
     public function indexSupervisi(Request $request)

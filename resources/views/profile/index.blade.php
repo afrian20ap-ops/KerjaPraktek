@@ -9,7 +9,7 @@
         <a href="{{ route('admin.dashboard') }}" class="nav-item"><i class="fa-solid fa-house"></i> Dashboard</a>
         <a href="{{ route('admin.karyawan') }}" class="nav-item"><i class="fa-solid fa-users"></i> Data Karyawan</a>
         <span class="nav-label" style="margin-top:1rem;">Absensi</span>
-        <a href="{{ route('admin.absensi') }}" class="nav-item"><i class="fa-solid fa-calendar-check"></i> Data Absensi</a>
+        <a href="{{ route('admin.absensi') }}" class="nav-item"><i class="fa-solid fa-calendar-check"></i> Riwayat Absen</a>
         <span class="nav-label" style="margin-top:1rem;">Penggajian</span>
         <a href="{{ route('admin.gaji.slip') }}" class="nav-item"><i class="fa-solid fa-file-invoice-dollar"></i> Slip Gaji</a>
         <span class="nav-label" style="margin-top:1rem;">Operasional</span>

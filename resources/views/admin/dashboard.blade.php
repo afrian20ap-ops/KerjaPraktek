@@ -14,7 +14,7 @@
 
 <span class="nav-label" style="margin-top:1rem;">Absensi</span>
 <a href="{{ route('admin.absensi') }}" class="nav-item" id="nav-absensi">
-    <i class="fa-solid fa-calendar-check"></i> Data Absensi
+    <i class="fa-solid fa-calendar-check"></i> Riwayat Absen
 </a>
 <span class="nav-label" style="margin-top:1rem;">Penggajian</span>
 <a href="{{ route('admin.gaji.slip') }}" class="nav-item" id="nav-rekap-gaji">
