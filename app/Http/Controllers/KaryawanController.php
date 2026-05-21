@@ -23,6 +23,8 @@ class KaryawanController extends Controller
             'role'                => 'required|in:karyawan,supervisi',
             'divisi'              => 'nullable|string',
             'jabatan'             => 'nullable|string',
+            'phone'               => 'nullable|string|max:20',
+            'alamat'              => 'nullable|string|max:500',
             'gaji_pokok_harian'   => 'required|numeric',
             'uang_makan_harian'   => 'required|numeric',
             'uang_lembur_per_jam' => 'required|numeric',
@@ -36,6 +38,8 @@ class KaryawanController extends Controller
             'role'                => $request->role,
             'divisi'              => $request->divisi,
             'jabatan'             => $request->jabatan,
+            'phone'               => $request->phone,
+            'alamat'              => $request->alamat,
             'gaji_pokok_harian'   => $request->gaji_pokok_harian,
             'uang_makan_harian'   => $request->uang_makan_harian,
             'uang_lembur_per_jam' => $request->uang_lembur_per_jam,
@@ -56,6 +60,8 @@ class KaryawanController extends Controller
             'role'                => 'required|in:karyawan,supervisi',
             'divisi'              => 'nullable|string',
             'jabatan'             => 'nullable|string',
+            'phone'               => 'nullable|string|max:20',
+            'alamat'              => 'nullable|string|max:500',
             'gaji_pokok_harian'   => 'required|numeric',
             'uang_makan_harian'   => 'required|numeric',
             'uang_lembur_per_jam' => 'required|numeric',
@@ -67,6 +73,8 @@ class KaryawanController extends Controller
         $user->role                = $request->role;
         $user->divisi              = $request->divisi;
         $user->jabatan             = $request->jabatan;
+        $user->phone               = $request->phone;
+        $user->alamat              = $request->alamat;
         $user->gaji_pokok_harian   = $request->gaji_pokok_harian;
         $user->uang_makan_harian   = $request->uang_makan_harian;
         $user->uang_lembur_per_jam = $request->uang_lembur_per_jam;

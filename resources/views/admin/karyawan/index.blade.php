@@ -48,6 +48,16 @@
                             @username: {{ $k->username ?? '-' }}
                         </div>
                         <div style="font-size:0.75rem;color:var(--text-muted);font-family:monospace;">NIK: {{ $k->nik ?? '-' }}</div>
+                        @if($k->phone)
+                            <div style="font-size:0.75rem;color:var(--text-secondary);margin-top:0.15rem;">
+                                <i class="fa-solid fa-phone" style="font-size:0.7rem;margin-right:0.25rem;color:var(--primary-500);"></i>{{ $k->phone }}
+                            </div>
+                        @endif
+                        @if($k->alamat)
+                            <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.15rem;">
+                                <i class="fa-solid fa-location-dot" style="font-size:0.7rem;margin-right:0.25rem;color:var(--danger);"></i>{{ Str::limit($k->alamat, 40) }}
+                            </div>
+                        @endif
                     </td>
                     <td>
                         <div>
@@ -72,6 +82,8 @@
                                 '{{ $k->role }}',
                                 '{{ $k->divisi }}',
                                 '{{ $k->jabatan }}',
+                                '{{ addslashes($k->phone ?? "") }}',
+                                '{{ addslashes(preg_replace("/\r|\n/", " ", $k->alamat ?? "")) }}',
                                 {{ $k->gaji_pokok_harian }},
                                 {{ $k->uang_makan_harian }},
                                 {{ $k->uang_lembur_per_jam }}
@@ -140,6 +152,14 @@
                 <div class="form-group">
                     <label>Jabatan</label>
                     <input type="text" name="jabatan" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>No. Telepon</label>
+                    <input type="tel" name="phone" class="form-control" placeholder="cth: 081234567890">
+                </div>
+                <div class="form-group" style="grid-column: 1 / -1; margin-bottom: 0.5rem;">
+                    <label>Alamat Domisili</label>
+                    <textarea name="alamat" class="form-control" rows="2" placeholder="cth: Jl. Merdeka No. 10, Jakarta"></textarea>
                 </div>
                 <div style="grid-column:1 / -1;margin-top:0.5rem;margin-bottom:0.25rem;">
                     <strong style="color:var(--primary-600);font-size:0.9rem;">PENGATURAN GAJI (Rp)</strong>
@@ -210,6 +230,14 @@
                     <label>Jabatan</label>
                     <input type="text" name="jabatan" id="edit_jabatan" class="form-control">
                 </div>
+                <div class="form-group">
+                    <label>No. Telepon</label>
+                    <input type="tel" name="phone" id="edit_phone" class="form-control" placeholder="cth: 081234567890">
+                </div>
+                <div class="form-group" style="grid-column: 1 / -1; margin-bottom: 0.5rem;">
+                    <label>Alamat Domisili</label>
+                    <textarea name="alamat" id="edit_alamat" class="form-control" rows="2" placeholder="cth: Jl. Merdeka No. 10, Jakarta"></textarea>
+                </div>
                 <div style="grid-column:1 / -1;margin-top:0.5rem;margin-bottom:0.25rem;">
                     <strong style="color:var(--primary-600);font-size:0.9rem;">PENGATURAN GAJI (Rp)</strong>
                     <hr style="border:none;border-top:1px dashed var(--border-color);margin-top:0.5rem;">
@@ -257,7 +285,7 @@ function openModal(id) {
 function closeModal(id) {
     document.getElementById(id).classList.remove('show');
 }
-function openEditModal(id, name, username, nik, role, divisi, jabatan, basic, makan, lembur) {
+function openEditModal(id, name, username, nik, role, divisi, jabatan, phone, alamat, basic, makan, lembur) {
     document.getElementById('editForm').action = '/admin/karyawan/' + id;
     document.getElementById('edit_name').value     = name;
     document.getElementById('edit_username').value = username;
@@ -265,6 +293,8 @@ function openEditModal(id, name, username, nik, role, divisi, jabatan, basic, ma
     document.getElementById('edit_role').value     = role;
     document.getElementById('edit_divisi').value   = divisi;
     document.getElementById('edit_jabatan').value  = jabatan;
+    document.getElementById('edit_phone').value    = phone;
+    document.getElementById('edit_alamat').value   = alamat;
     document.getElementById('edit_gaji').value     = basic;
     document.getElementById('edit_makan').value    = makan;
     document.getElementById('edit_lembur').value   = lembur;

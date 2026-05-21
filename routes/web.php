@@ -134,14 +134,11 @@ Route::prefix('supervisi')->name('supervisi.')->group(function () {
     Route::get('/dashboard', function () {
         $tim = \App\Models\User::where('role', 'karyawan')->count();
         $today = \Carbon\Carbon::today()->format('Y-m-d');
-        $yesterday = \Carbon\Carbon::yesterday()->format('Y-m-d');
 
-        $hadirKemarin = \App\Models\Absensi::where('tanggal', $yesterday)->where('status', 'Hadir')->count();
-        $tidakHadirKemarin = \App\Models\Absensi::where('tanggal', $yesterday)->where('status', 'Alpa')->count();
+        $hadirHariIni = \App\Models\Absensi::where('tanggal', $today)->where('status', 'Hadir')->count();
 
         $laporanTertunda = \App\Models\LaporanLapangan::where('status', 'Terkirim')->count();
         $laporanTerkini  = \App\Models\LaporanLapangan::with('user')->whereDate('tanggal', $today)->orderBy('created_at', 'desc')->get();
-        $absensiTerkini  = \App\Models\Absensi::with('user')->whereDate('tanggal', $yesterday)->orderBy('created_at', 'desc')->get();
 
         $tahun = now()->year;
         $chartHadir      = [];
@@ -156,8 +153,8 @@ Route::prefix('supervisi')->name('supervisi.')->group(function () {
         }
 
         return view('supervisi.dashboard', compact(
-            'tim', 'hadirKemarin', 'tidakHadirKemarin',
-            'laporanTertunda', 'laporanTerkini', 'absensiTerkini',
+            'tim', 'hadirHariIni',
+            'laporanTertunda', 'laporanTerkini',
             'chartHadir', 'chartTidakHadir'
         ));
     })->name('dashboard');

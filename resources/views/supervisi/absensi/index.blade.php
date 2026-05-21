@@ -48,13 +48,64 @@
     .time-clean { width: 88px; border: 1px solid var(--border-color); border-radius: var(--border-radius-sm); padding: 0.35rem 0.5rem; background: var(--bg-card); color: var(--text-primary); font-family: monospace; font-size: 0.88rem; text-align: center; outline: none; transition: border 0.15s; }
     .time-clean:focus { border-color: var(--primary-500); box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-500) 20%, transparent); }
     .time-clean:disabled { opacity: 0.35; cursor: not-allowed; background: var(--bg-hover); }
+
+    /* Floating Save Button on Mobile */
+    @media (max-width: 768px) {
+        .bottom-save-container {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            z-index: 100;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translateY(100px);
+            opacity: 0;
+            pointer-events: none;
+        }
+        .bottom-save-container.show {
+            transform: translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .btn-save-floating {
+            border-radius: 99px;
+            padding: 0.75rem 1.5rem;
+            box-shadow: 0 4px 15px rgba(244, 63, 94, 0.35);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+        }
+        .static-bottom-save {
+            display: none !important;
+        }
+    }
+    @media (min-width: 769px) {
+        .bottom-save-container {
+            display: none !important;
+        }
+    .filter-group {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
 </style>
 
-{{-- DATE PICKER --}}
+{{-- DATE PICKER & SORTING --}}
 <form method="GET" action="{{ route('supervisi.absensi') }}" class="date-bar">
-    <label><i class="fa-solid fa-calendar-day" style="color:var(--primary-500);margin-right:0.35rem;"></i>Tanggal:</label>
-    <input type="date" name="tanggal" value="{{ $tanggal }}" onchange="this.form.submit()">
+    <div class="filter-group">
+        <label><i class="fa-solid fa-calendar-day" style="color:var(--primary-500);margin-right:0.35rem;"></i>Tanggal:</label>
+        <input type="date" name="tanggal" value="{{ $tanggal }}" onchange="this.form.submit()">
+    </div>
     <span class="date-badge">{{ \Carbon\Carbon::parse($tanggal)->locale('id')->isoFormat('dddd, D MMMM Y') }}</span>
+    
+    <div class="filter-group">
+        <label><i class="fa-solid fa-sort" style="color:var(--primary-500);margin-right:0.35rem;"></i>Urutkan:</label>
+        <select name="sort" onchange="this.form.submit()" class="form-control" style="width: auto; padding: 0.35rem 2rem 0.35rem 0.75rem; font-size: 0.85rem; height: auto; display: inline-block; cursor: pointer; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);">
+            <option value="name" {{ request('sort', 'name') == 'name' ? 'selected' : '' }}>Nama Karyawan</option>
+            <option value="nik" {{ request('sort') == 'nik' ? 'selected' : '' }}>NIK</option>
+        </select>
+    </div>
+    
     <button type="submit" class="btn btn-outline" style="margin-left:auto;padding:0.35rem 0.75rem;font-size:0.82rem;"><i class="fa-solid fa-arrow-right"></i> Tampilkan</button>
 </form>
 
@@ -87,8 +138,8 @@
                 <button type="button" onclick="tandaiSemua('Hadir')" class="btn btn-outline" style="border-color:var(--success);color:var(--success);padding:0.35rem 0.85rem;font-size:0.82rem;">
                     <i class="fa-solid fa-check-double"></i> Semua Hadir
                 </button>
-                <button type="button" onclick="setJamSemua('09:00', 'now')" class="btn btn-outline" style="padding:0.35rem 0.85rem;font-size:0.82rem;">
-                    <i class="fa-regular fa-clock"></i> Set Waktu Sekarang
+                <button type="button" onclick="setJamSemua('09:00', '17:00')" class="btn btn-outline" style="padding:0.35rem 0.85rem;font-size:0.82rem;">
+                    <i class="fa-regular fa-clock"></i> Set Waktu Default (09.00-17.00)
                 </button>
                 <button type="submit" class="btn btn-primary" style="padding:0.35rem 1rem;">
                     <i class="fa-solid fa-save"></i> Simpan Absensi
@@ -191,8 +242,15 @@
             </table>
         </div>
 
-        <div style="padding:1rem 1.25rem;display:flex;justify-content:flex-end;border-top:1px solid var(--border-color);">
+        <div class="static-bottom-save" style="padding:1rem 1.25rem;display:flex;justify-content:flex-end;border-top:1px solid var(--border-color);">
             <button type="submit" class="btn btn-primary" style="padding:0.5rem 1.5rem;font-size:0.95rem;">
+                <i class="fa-solid fa-save"></i> Simpan Absensi
+            </button>
+        </div>
+
+        <!-- Floating Save Button for Mobile -->
+        <div class="bottom-save-container">
+            <button type="submit" class="btn btn-primary btn-save-floating">
                 <i class="fa-solid fa-save"></i> Simpan Absensi
             </button>
         </div>
@@ -301,5 +359,17 @@ function setJamSemua(jamMasuk, jamKeluar) {
         }
     });
 }
+
+// Show/hide floating save button on mobile scroll
+window.addEventListener('scroll', function() {
+    const floatingBtn = document.querySelector('.bottom-save-container');
+    if (floatingBtn) {
+        if (window.scrollY > 150) {
+            floatingBtn.classList.add('show');
+        } else {
+            floatingBtn.classList.remove('show');
+        }
+    }
+});
 </script>
 @endpush

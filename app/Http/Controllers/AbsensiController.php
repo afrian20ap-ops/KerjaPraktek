@@ -55,7 +55,15 @@ class AbsensiController extends Controller
 
         // Ambil tanggal dari query param, default hari ini
         $tanggal = $request->query('tanggal', Carbon::now()->format('Y-m-d'));
-        $users   = User::where('role', 'karyawan')->get();
+        $sort    = $request->query('sort', 'name');
+
+        $query = User::where('role', 'karyawan');
+        if ($sort === 'nik') {
+            $query->orderBy('nik', 'asc');
+        } else {
+            $query->orderBy('name', 'asc');
+        }
+        $users = $query->get();
 
         $absensis = [];
         foreach ($users as $user) {
@@ -119,7 +127,14 @@ class AbsensiController extends Controller
     public function indexKaryawan(Request $request)
     {
         $userId = session('user_id'); 
-        $absensis = Absensi::where('user_id', $userId)->orderBy('tanggal', 'desc')->limit(30)->get();
-        return view('karyawan.absensi.index', compact('absensis'));
+        $dari = $request->query('dari', Carbon::now()->startOfMonth()->format('Y-m-d'));
+        $sampai = $request->query('sampai', Carbon::now()->endOfMonth()->format('Y-m-d'));
+
+        $absensis = Absensi::where('user_id', $userId)
+            ->whereBetween('tanggal', [$dari, $sampai])
+            ->orderBy('tanggal', 'desc')
+            ->get();
+
+        return view('karyawan.absensi.index', compact('absensis', 'dari', 'sampai'));
     }
 }

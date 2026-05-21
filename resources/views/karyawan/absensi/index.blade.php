@@ -14,15 +14,18 @@
 
 @section('content')
 <div class="panel">
-    <div class="panel-header">
+    <div class="panel-header" style="flex-wrap: wrap; gap: 0.75rem;">
         <div class="header-left">
             <span class="panel-title">Riwayat Kehadiran Anda</span>
         </div>
         <div class="panel-actions">
-            <div class="filter-actions">
-                <input type="month" class="form-control" style="padding:0.35rem 0.75rem;font-size:0.85rem;" value="{{ date('Y-m') }}">
-                <button class="btn btn-primary" style="padding: 0.35rem 0.75rem;"><i class="fa-solid fa-search"></i></button>
-            </div>
+            <form action="{{ route('karyawan.absensi') }}" method="GET" class="filter-actions" style="display:flex; gap:0.5rem; align-items:center;">
+                <label style="font-size:0.82rem; font-weight:600; color:var(--text-secondary); white-space:nowrap;">Dari:</label>
+                <input type="date" name="dari" class="form-control" style="padding:0.35rem 0.75rem; font-size:0.85rem; width:145px;" value="{{ $dari }}">
+                <label style="font-size:0.82rem; font-weight:600; color:var(--text-secondary); white-space:nowrap;">Sampai:</label>
+                <input type="date" name="sampai" class="form-control" style="padding:0.35rem 0.75rem; font-size:0.85rem; width:145px;" value="{{ $sampai }}">
+                <button type="submit" class="btn btn-primary" style="padding: 0.35rem 0.75rem;"><i class="fa-solid fa-search"></i> Cari</button>
+            </form>
         </div>
     </div>
     <div style="padding: 1rem 1.5rem; background: var(--bg-hover); border-bottom: 1px solid var(--border-color); font-size: 0.85rem; color: var(--text-secondary);">
